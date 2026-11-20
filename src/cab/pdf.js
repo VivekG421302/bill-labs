@@ -33,6 +33,11 @@ export function wrap(text, font, size, maxWidth) {
  * assets: { fonts:{sans,sansBold,serif,dejavu}, dotFrom, dotTo, logo?:{bytes, w, h, settings} }
  */
 export async function buildPdf(bill, assets) {
+  return (await buildPdfDetailed(bill, assets)).bytes
+}
+
+// Same as buildPdf, plus `bottom`: y (pt from top) where the content ends, used to crop previews.
+export async function buildPdfDetailed(bill, assets) {
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
   const f = {
@@ -116,5 +121,6 @@ export async function buildPdf(bill, assets) {
   wrap(bill.remark?.trim() ? bill.remark : DEFAULT_REMARK, f.serif, N.size, nmax)
     .forEach((s, i) => text(s, N.x, base + i * N.pitch, f.serif, N.size))
 
-  return doc.save()
+  const noteLines = wrap(bill.remark?.trim() ? bill.remark : DEFAULT_REMARK, f.serif, N.size, nmax).length
+  return { bytes: await doc.save(), bottom: base + (noteLines - 1) * N.pitch }
 }
