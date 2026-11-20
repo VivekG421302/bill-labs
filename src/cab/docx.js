@@ -151,5 +151,5 @@ export async function buildDocx(bill, assets) {
       children: kids,
     }],
   })
-  return Packer.toUint8Array ? Packer.toUint8Array(doc) : Packer.toBuffer(doc)
+  return new Uint8Array(await Packer.toArrayBuffer(doc))
 }

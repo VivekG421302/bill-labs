@@ -1,6 +1,9 @@
+import { Suspense, lazy } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home.jsx'
-import CabBill from './pages/CabBill.jsx'
+
+// The cab bill tool (PDF/Word engines, fonts) loads only when it is opened.
+const CabBill = lazy(() => import('./pages/CabBill.jsx'))
 
 // The petrol bill tool is a standalone page kept exactly as it was
 // (public/petrol-bill). It lives on its own route, outside the React router.
@@ -19,11 +22,13 @@ export default function App() {
         </nav>
       </header>
       <main className="main">
+        <Suspense fallback={<p className="muted">Loading…</p>}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cab-bill" element={<CabBill />} />
           <Route path="*" element={<Home />} />
         </Routes>
+        </Suspense>
       </main>
     </div>
   )
