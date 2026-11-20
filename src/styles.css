@@ -1,0 +1,43 @@
+@font-face { font-family: 'Open Sans'; font-weight: 400; src: url('./assets/fonts/OpenSans-Regular.ttf') format('truetype'); font-display: swap; }
+@font-face { font-family: 'Open Sans'; font-weight: 700; src: url('./assets/fonts/OpenSans-Bold.ttf') format('truetype'); font-display: swap; }
+
+:root {
+  --ink: #1b2430;
+  --ink-soft: #566274;
+  --paper: #f3f4f7;
+  --surface: #ffffff;
+  --line: #d8dce3;
+  --amber: #f0a919;
+  --amber-ink: #2a1c00;
+  --danger: #b3261e;
+  --ok: #17756b;
+  --radius: 10px;
+  font-family: 'Open Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100dvh; }
+h1 { font-size: 1.5rem; margin: 0 0 1rem; line-height: 1.25; }
+a { color: inherit; }
+
+.shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
+  background: var(--ink); color: #fff;
+}
+.brand { font-weight: 700; font-size: 1.05rem; text-decoration: none; }
+.topnav { display: flex; gap: 0.25rem; }
+.topnav a { text-decoration: none; padding: 0.45rem 0.8rem; border-radius: 8px; color: #cfd6e2; font-size: 0.92rem; }
+.topnav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.topnav a.active { background: var(--amber); color: var(--amber-ink); font-weight: 700; }
+.main { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+.home { max-width: 760px; margin: 2rem auto; }
+.home-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.home-card { display: flex; flex-direction: column; gap: 0.4rem; padding: 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; }
+.home-card:hover { border-color: var(--ink); }
+.home-card-title { font-weight: 700; font-size: 1.1rem; }
+.home-card-body { color: var(--ink-soft); font-size: 0.92rem; line-height: 1.5; }
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
