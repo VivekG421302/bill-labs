@@ -17,7 +17,7 @@ function Field({ k, bill, setBill, children, hint, className = '' }) {
   )
 }
 
-export default function BillForm({ bill, setBill, stamp, setStamp, fileBase }) {
+export default function BillForm({ bill, setBill, fileBase }) {
   const p = { bill, setBill }
   return (
     <div className="form-grid">
@@ -52,20 +52,10 @@ export default function BillForm({ bill, setBill, stamp, setStamp, fileBase }) {
       </Field>
       <fieldset className="wide filebox">
         <legend>File name</legend>
-        <div className="form-grid inner">
-          <div className="field">
-            <label htmlFor="f-fileName">Name (optional)</label>
-            <input id="f-fileName" type="text" autoComplete="off" placeholder="Leave empty to use a timestamp" value={bill.fileName}
-              onChange={(e) => setBill({ ...bill, fileName: e.target.value })} />
-          </div>
-          <div className="field">
-            <label htmlFor="f-stamp">Timestamp date</label>
-            <div className="row nowrap">
-              <input id="f-stamp" type="datetime-local" value={stamp} onChange={(e) => setStamp(e.target.value)} />
-              <button type="button" className="btn btn-sm" disabled={!stamp} onClick={() => setStamp('')}>Auto</button>
-            </div>
-            <p className="hint">{stamp ? 'Custom date used for the file name.' : 'Auto: the file name uses the Time of ride.'}</p>
-          </div>
+        <div className="field">
+          <label htmlFor="f-fileName">Name (optional)</label>
+          <input id="f-fileName" type="text" autoComplete="off" placeholder="Leave empty to use CAB_RECEIPT_ and the Ride ID" value={bill.fileName}
+            onChange={(e) => setBill({ ...bill, fileName: e.target.value })} />
         </div>
         <p className="hint">Saved as <code>{fileBase}</code> + .pdf or .docx</p>
       </fieldset>

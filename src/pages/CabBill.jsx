@@ -5,7 +5,7 @@ import LogoPanel from '../components/LogoPanel.jsx'
 import Modal from '../components/Modal.jsx'
 import PdfView from '../components/PdfView.jsx'
 import { DEFAULT_LOGO } from '../cab/assets.js'
-import { FIELDS, emptyBill, epochFor, resolveFileBase, sanitizeFileName, toInputTime } from '../cab/fields.js'
+import { FIELDS, emptyBill, resolveFileBase, toInputTime } from '../cab/fields.js'
 import { downloadOne } from '../cab/exporter.js'
 import { useStored } from '../cab/store.js'
 
@@ -25,15 +25,13 @@ export default function CabBill() {
   const [records, setRecords, recErr] = useStored('billlabs.cab.records', [])
   const [tab, setTab] = useState('single')
   const [bill, setBill] = useState(emptyBill)
-  const [stamp, setStamp] = useState('')          // '' = automatic: use the bill's Time of ride
-  const [opened] = useState(() => Date.now())     // fallback when a bill has no usable Time of ride
   const [editingId, setEditingId] = useState(null)
   const [preview, setPreview] = useState(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const wide = useWide()
 
-  const fileBase = resolveFileBase(bill, epochFor(bill, stamp, opened))
+  const fileBase = resolveFileBase(bill)
 
   const missing = () => {
     const m = FIELDS.filter((f) => f.required && !bill[f.key].trim()).map((f) => f.label)
@@ -48,7 +46,10 @@ export default function CabBill() {
   }
   // Open a saved bill in the form so it can be corrected.
   const editRecord = (r) => {
-    setBill({ ...emptyBill(), ...r.bill, rideTime: toInputTime(r.bill.rideTime), fileName: r.fileBase })
+    // A name that simply follows the Ride ID stays automatic, so changing the Ride ID renames the file.
+    const auto = resolveFileBase({ ...r.bill, fileName: '' })
+    const isAuto = r.fileBase === auto || new RegExp(`^${auto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_\\d+$`).test(r.fileBase)
+    setBill({ ...emptyBill(), ...r.bill, rideTime: toInputTime(r.bill.rideTime), fileName: isAuto ? '' : r.fileBase })
     setEditingId(r.id); setPreview(null); setMsg(''); setTab('single')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -57,7 +58,7 @@ export default function CabBill() {
     const m = missing()
     if (m.length) return setMsg(`Please fill: ${m.join(', ')}.`)
     const used = new Set(records.filter((r) => r.id !== editingId).map((r) => r.fileBase.toLowerCase()))
-    const wanted = sanitizeFileName(bill.fileName) || editing.fileBase
+    const wanted = resolveFileBase(bill)
     let base = wanted, n = 2
     while (used.has(base.toLowerCase())) base = `${wanted}_${n++}`
     setRecords(records.map((r) => (r.id === editingId ? { ...r, bill: { ...bill }, fileBase: base } : r)))
@@ -92,7 +93,7 @@ export default function CabBill() {
                 {editing ? <>Editing <strong>{editing.fileBase}</strong> from your list.</> : 'This bill is no longer in the list.'}
               </div>
             )}
-            <BillForm bill={bill} setBill={setBill} stamp={stamp} setStamp={setStamp} fileBase={fileBase} />
+            <BillForm bill={bill} setBill={setBill} fileBase={bill.fileName.trim() || bill.rideId.trim() ? fileBase : 'CAB_RECEIPT_<Ride ID>'} />
             {msg && <p className="error" role="alert">{msg}</p>}
             <div className="row actions">
               {!wide && <button type="button" className="btn" onClick={openPreview}>Preview PDF</button>}
@@ -110,7 +111,7 @@ export default function CabBill() {
           )}
         </div>
       ) : (
-        <BulkPanel logo={logo} records={records} setRecords={setRecords} stamp={stamp} setStamp={setStamp} fallbackEpoch={opened} onPreview={(r) => setPreview(r)} />
+        <BulkPanel logo={logo} records={records} setRecords={setRecords} onPreview={(r) => setPreview(r)} />
       )}
 
       {preview && (

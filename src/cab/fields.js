@@ -98,17 +98,12 @@ export const sanitizeFileName = (s) =>
 
 export const DEFAULT_PREFIX = 'CAB_RECEIPT'
 
-// Epoch (ms) used in a default file name: a date picked by the user wins, otherwise the bill's own
-// Time of ride, otherwise `fallback` (the moment the page was opened).
-export function epochFor(bill, override, fallback) {
-  const o = override ? new Date(override).getTime() : NaN
-  if (Number.isFinite(o)) return o
-  return parseRideTime(bill.rideTime)?.getTime() ?? fallback
-}
-
-// File name = given name, otherwise CAB_RECEIPT_<epoch ms>. Epoch comes from the chosen date.
-export function resolveFileBase(bill, epochMs) {
-  return sanitizeFileName(bill.fileName) || `${DEFAULT_PREFIX}_${epochMs}`
+// File name = the name given, otherwise CAB_RECEIPT_<Ride ID>. (No ride ID: CAB_RECEIPT_<now> so a name always exists.)
+export function resolveFileBase(bill) {
+  const given = sanitizeFileName(bill.fileName)
+  if (given) return given
+  const id = sanitizeFileName(bill.rideId).replace(/\s+/g, '')
+  return `${DEFAULT_PREFIX}_${id || Date.now()}`
 }
 
 export const norm = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '')
