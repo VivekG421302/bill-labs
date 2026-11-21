@@ -41,6 +41,18 @@ Use the in-app **Download template CSV**. Headers:
 Both tools use one shared theme (dark by default, toggle in the top bar, remembered in `localStorage` key `billlabs.theme`).
 The Petrol bill page has a top bar linking back to Bill Labs and the Cab bill.
 
+## Petrol bill: bulk create from CSV
+
+On the Petrol bill page, the **Bulk create from CSV** card makes many bills from the current bill rows.
+
+1. Set up one bill the way you want it (rows, logo, paper width).
+2. **Template CSV** downloads a file with one column per Key in your bill rows, filled with the current values. If the template has Preset, Sale or Volume rows, they are replaced by a single **Amount** column.
+3. Fill one CSV row per bill and **Upload CSV**. Check the summary, then **Create bills**.
+
+Rules: a column whose header matches a Key (ignoring case, spaces and dots, so `Vehi.No` = `vehi no`) fills that row's value. Empty cells keep the template value. `Amount` (with `Rate` from the column, or the Quick fill rate) works out Preset, Rate, Sale and Volume like the Quick fill button; any explicit Preset/Sale/Volume column overrides that. Rows with nothing matching are skipped. Comma or semicolon separated files both work.
+
+Created bills are saved in the browser and listed with **Preview**, **Print** and **Delete**. **Print all** prints every bill in one job, one receipt per page, so the printer cuts between them. Layout changes (paper width, font, logo) apply to all listed bills.
+
 ### Storage
 The logo settings and the created-bills list are kept in the browser's `localStorage` (data only; files are generated on demand).
 

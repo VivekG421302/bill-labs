@@ -25,7 +25,7 @@ button:hover{border-color:var(--acc)}
 .nvl{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;color:var(--ink);background:var(--bg);text-decoration:none;flex:none}.nvl:hover{border-color:var(--acc)}.tb{display:flex;gap:8px}
 .pvb{display:none;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:14px;max-width:1150px;margin:auto}
-.editor{display:flex;flex-direction:column}
+.editor{display:flex;flex-direction:column;min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
 h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
@@ -81,7 +81,7 @@ input[type=range]{padding:0;accent-color:var(--acc);width:100%}
 small{color:var(--mut)}
 .green{background:var(--green);color:#fff;border-color:var(--green)}.green:hover{filter:brightness(1.1);border-color:var(--green)}
 .menu button:hover{border-color:var(--green)}.menu .ic{color:var(--green)}
-#receipt .bd{font-weight:800}
+:is(#receipt,.rcpt) .bd{font-weight:800}
 .how{display:none}@media(max-width:900px),(hover:none){.how{display:inline-flex}}
 .modal{position:fixed;inset:0;z-index:100;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px}.modal[hidden]{display:none}
 .mc{background:var(--card);border-radius:14px;padding:16px;max-width:360px;width:100%;position:relative}
@@ -97,11 +97,26 @@ small{color:var(--mut)}
 /* preview */
 .previewcol{position:sticky;top:60px;height:calc(100vh - 72px);align-self:start}
 .stage{height:100%;overflow:auto;background:#52525b;border-radius:12px;padding:8px 0;display:flex;justify-content:center;align-items:flex-start}
-#receipt{background:#fff;color:#000;font-family:"Courier New",Courier,monospace;padding:0 4mm;overflow:hidden;flex:none}
-#receipt .ln{white-space:pre;font-weight:500}#receipt .ln.b{font-weight:800}#receipt .ln.c{text-align:center}
-#receipt .logo img{width:100%;display:block}#receipt .logo{margin:0 auto}
+:is(#receipt,.rcpt){background:#fff;color:#000;font-family:"Courier New",Courier,monospace;padding:0 4mm;overflow:hidden;flex:none}
+:is(#receipt,.rcpt) .ln{white-space:pre;font-weight:500}:is(#receipt,.rcpt) .ln.b{font-weight:800}:is(#receipt,.rcpt) .ln.c{text-align:center}
+:is(#receipt,.rcpt) .logo img{width:100%;display:block}:is(#receipt,.rcpt) .logo{margin:0 auto}
+
+/* bulk create */
+.small{font-size:12px;color:var(--mut);margin:8px 0}
+.bsum{margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.bsum p{margin:4px 0}.bsum ul{margin:4px 0 0;padding-left:18px;max-height:130px;overflow:auto;font-size:12px}
+.berr{color:var(--red)}
+.bhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:14px}
+.bhead b{font-size:13px}
+.bi{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.bn{flex:1;min-width:0;display:flex;flex-direction:column}.bn b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bn small{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ba{display:flex;gap:6px;flex:none}
+.tbtn{padding:6px 10px}
+.pmc{max-width:420px}.pstage{background:#52525b;border-radius:10px;padding:8px 0;display:flex;justify-content:center;align-items:flex-start;max-height:62vh;overflow:auto;margin:10px 0}
+.pmc .bar{margin-top:0}.pmc>.ib{z-index:2}
+#bulkprint{display:none}
 @media(max-width:900px){
- .app{grid-template-columns:1fr;padding:10px}
+ .app{grid-template-columns:minmax(0,1fr);padding:10px}
  .pvb{display:inline-flex}
  .previewcol{display:none;position:static;height:auto}.stage{height:auto}
  body.pv .previewcol{display:block}body.pv .editor{display:none}
@@ -109,6 +124,7 @@ small{color:var(--mut)}
 @media(max-width:700px){input{font-size:16px}.ib{width:38px;height:38px}.nvl{height:38px;padding:0 9px}.nvl span{display:none}.inp{flex-direction:column;align-items:stretch}}
 @media(max-width:460px){.ib,.nvl{height:36px}.ib{width:36px}.tb{gap:6px}.ttl{font-size:14px}}
 @media print{
+ body.pb .app,body.pb .topbar{display:none!important}body.pb #bulkprint{display:block}.rcpt{break-after:page;page-break-after:always;margin:0}
  body{background:#fff}.topbar,.editor{display:none!important}
  .app{display:block;padding:0}.previewcol{display:block!important;position:static;height:auto}
  .stage{display:block;height:auto;padding:0;overflow:visible;background:none}
@@ -169,9 +185,24 @@ small{color:var(--mut)}
    <input id="ifile" type="file" accept=".json" hidden>
   </div>
  </section>
+
+ <section class="card" style="order:5" id="bulk"><h2>Bulk create from CSV</h2>
+  <div class="bar" style="margin:0">
+   <button id="btpl" class="tbtn" data-tip="Download a CSV with a column for every key in your bill rows"><svg class="ic"><use href="#i-down"/></svg><span>Template CSV</span></button>
+   <button id="bup" class="tbtn" data-tip="Upload a CSV: one row creates one bill"><svg class="ic"><use href="#i-upload"/></svg><span>Upload CSV</span></button>
+   <input id="bfile" type="file" accept=".csv,text/csv" hidden>
+  </div>
+  <p class="small">Each CSV row becomes a bill made from the rows above. A column whose header matches a Key (for example <b>Bill No</b>, <b>Vehi.No</b>, <b>Date</b>) fills that row's value. An <b>Amount</b> column also works out Preset, Sale and Volume from the rate. Empty cells keep the value above.</p>
+  <div id="bres"></div>
+  <div id="blist"></div>
+ </section>
 </div>
 <div class="previewcol"><div class="stage"><div id="receipt"></div></div></div>
 </div>
+<div id="bulkprint" aria-hidden="true"></div>
+<div id="pm" class="modal" hidden><div class="mc pmc"><button id="px" class="ib" data-tip="Close"><svg class="ic"><use href="#i-x"/></svg></button><h3 id="ptitle">Bill</h3>
+ <div class="pstage"><div class="rcpt" id="prc"></div></div>
+ <div class="bar"><button id="pprint" class="pri tbtn"><svg class="ic"><use href="#i-print"/></svg><span>Print</span></button></div></div></div>
 <div id="hm" class="modal" hidden><div class="mc">
  <button id="hx" class="ib" data-tip="Close"><svg class="ic"><use href="#i-x"/></svg></button>
  <h3>Editing rows</h3>
@@ -300,17 +331,16 @@ $("#addmenu").onclick=()=>{const m=$("#menu");m.hidden=!m.hidden;$("#addmenu").c
 $("#menu").onclick=e=>{const b=e.target.closest("[data-add]");if(!b)return;addType=b.dataset.add;lbl();$("#menu").hidden=true;$("#addmenu").classList.remove("open")};
 
 // receipt
-function renderReceipt(){
- const s=S.s,R=$("#receipt");
+function fillReceipt(R,rows){
+ const s=S.s;
  R.style.width=Math.max(30,s.paper)+"mm";R.style.fontSize=s.font+"px";R.style.lineHeight=s.lh;
  R.style.paddingTop=s.top+"px";R.style.paddingBottom=s.bot+"px";
- $("#pg").textContent=`@page{size:${s.paper}mm auto;margin:0}@media print{#receipt{width:${s.paper}mm}}`;
  const inner=(s.paper-8)*96/25.4,chars=Math.max(1,Math.floor(inner/(0.6*s.font)));
- const kmax=Math.max(0,...S.rows.filter(r=>r.t==="kv").map(r=>(r.k||"").length));
+ const kmax=Math.max(0,...rows.filter(r=>r.t==="kv").map(r=>(r.k||"").length));
  let h=`<div style="height:${s.sa}px"></div>`;
  if(s.showlogo&&s.logo)h+=`<div class="logo" style="width:${s.lw}%"><img src="${s.logo}" alt=""></div>`;
  h+=`<div style="height:${s.sb}px"></div>`;
- S.rows.forEach(r=>{
+ rows.forEach(r=>{
   if(r.t==="sp")h+=`<div style="height:${parseFloat(r.v)||0}px"></div>`;
   else if(r.t==="hr")h+=`<div class="ln">${"-".repeat(chars)}</div>`;
   else if(r.t==="line")h+=`<div class="ln${r.b?" b":""}${r.c?" c":""}">${esc(r.v||"")||"&nbsp;"}</div>`;
@@ -318,6 +348,11 @@ function renderReceipt(){
  });
  R.innerHTML=h;
  R.querySelectorAll(".ln").forEach(el=>{const w=el.textContent.length*0.6*s.font;if(w>inner+0.5)el.style.fontSize=(s.font*inner/w).toFixed(2)+"px"});
+}
+function renderReceipt(){
+ const s=S.s;
+ $("#pg").textContent=`@page{size:${s.paper}mm auto;margin:0}@media print{#receipt,.rcpt{width:${s.paper}mm}}`;
+ fillReceipt($("#receipt"),S.rows);
  $("#lwo").textContent=s.lw+"%";{const d=s.lw-lw0;$("#lcap").textContent=`${((s.paper-8)*s.lw/100).toFixed(1)} mm wide · was ${lw0}%, now ${s.lw}%${d?` (${d>0?"+":""}${d})`:""}`}
  const mi=$("#mimg"),gi=$("#gimg");if(mi.getAttribute("src")!==s.logo)mi.src=gi.src=s.logo||"";mi.style.width=s.lw+"%";gi.style.width=lw0+"%";$("#mini").style.opacity=s.showlogo?1:.3;
  $("#tglogo").classList.toggle("on",!!s.showlogo);$("#tgalign").classList.toggle("on",!!s.align);
@@ -363,6 +398,106 @@ addEventListener("beforeinstallprompt",e=>{e.preventDefault();dip=e;$("#inst").h
 $("#inst").onclick=async()=>{if(!dip)return;dip.prompt();await dip.userChoice;dip=null;$("#inst").hidden=true};
 addEventListener("appinstalled",()=>$("#inst").hidden=true);
 if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+// ---------- bulk create from CSV ----------
+const BK="pumpbill_bulk_v1";
+let BULK=[];try{BULK=JSON.parse(localStorage.getItem(BK))||[]}catch(e){}
+let pending=null,shown=50;
+const nk=v=>String(v==null?"":v).toLowerCase().replace(/[^a-z0-9]/g,"");
+const bsave=()=>{try{localStorage.setItem(BK,JSON.stringify(BULK));return true}catch(e){return false}};
+function parseCsv(t){
+ t=t.replace(/^\ufeff/,"");
+ const first=t.split(/\r?\n/,1)[0]||"",d=first.split(";").length>first.split(",").length?";":",";
+ const out=[];let row=[],f="",q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c==='"')q=true;
+  else if(c===d){row.push(f);f=""}
+  else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;row.push(f);out.push(row);row=[];f=""}
+  else f+=c}
+ if(f!==""||row.length){row.push(f);out.push(row)}
+ return out.filter(r=>r.some(x=>x.trim()!==""))}
+const q=v=>/[",\r\n;]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':String(v);
+const DERIVED=["preset","sale","volume"];
+const kvKeys=()=>{const seen=new Set(),o=[];S.rows.forEach(r=>{if(r.t==="kv"){const k=(r.k||"").trim();if(k&&!seen.has(nk(k))){seen.add(nk(k));o.push(r)}}});return o};
+function templateCsv(){
+ const kv=kvKeys(),hasCalc=kv.some(r=>DERIVED.includes(nk(r.k)));
+ const cols=[];let amountAt=false;
+ kv.forEach(r=>{if(DERIVED.includes(nk(r.k))){if(!amountAt){cols.push({h:"Amount",v:String(num($("#qa"))||"")});amountAt=true}}
+  else cols.push({h:r.k.trim(),v:nk(r.k)==="rate"?String(num($("#qr"))||r.v||""):(r.v||"")})});
+ if(!hasCalc&&!cols.length)return "";
+ return "\ufeff"+cols.map(c=>q(c.h)).join(",")+"\r\n"+cols.map(c=>q(c.v)).join(",")+"\r\n"}
+const setAll=(rows,key,val)=>rows.forEach(r=>{if(r.t==="kv"&&nk(r.k)===key)r.v=val});
+function makeBill(head,cells){
+ const rows=JSON.parse(JSON.stringify(S.rows)),val={};
+ head.forEach((h,i)=>{const v=(cells[i]||"").trim();if(h&&v!=="")val[h]=v});
+ let calc=false;
+ const a=parseFloat((val.amount||"").replace(/[^0-9.]/g,"")),rt=parseFloat((val.rate||"").replace(/[^0-9.]/g,""))||num($("#qr"));
+ if(a>0&&rt>0){calc=true;
+  setAll(rows,"preset","Rs."+(Number.isInteger(a)?a:a.toFixed(2)));setAll(rows,"rate","Rs."+rt.toFixed(2));
+  setAll(rows,"sale","Rs."+a.toFixed(2));setAll(rows,"volume",(a/rt).toFixed(2)+"L")}
+ Object.keys(val).forEach(k=>{if(k==="amount"||(calc&&k==="rate"))return;setAll(rows,k,val[k])});
+ return rows}
+const labelOf=rows=>{const f=k=>{const r=rows.find(r=>r.t==="kv"&&nk(r.k)===k);return r?(r.v||""):""};
+ const title=f("billno")||f("trnsid")||(rows.find(r=>r.t==="kv"&&r.v)||{}).v||"Bill";
+ const sub=[f("date"),f("time"),f("sale"),f("vehino")].filter(Boolean).join(" · ");return[title,sub]};
+function bmsg(){const el=$("#bres");
+ if(!pending){el.innerHTML="";return}
+ const p=pending;
+ el.innerHTML=`<div class="bsum"><p><b>${esc(p.name)}</b>: ${p.bills.length} of ${p.total} rows are ready.</p>`+
+  (p.error?`<p class="berr">${esc(p.error)}</p>`:"")+
+  (p.unknown.length?`<p class="small">Ignored columns (no matching key): ${esc(p.unknown.join(", "))}</p>`:"")+
+  (p.skipped.length?`<details><summary>${p.skipped.length} rows will be skipped</summary><ul>${p.skipped.slice(0,100).map(x=>`<li>Row ${x}: nothing matched a column</li>`).join("")}</ul></details>`:"")+
+  `<div class="bar"><button id="bgo" class="pri tbtn"${p.bills.length&&!p.error?"":" disabled"}>Create ${p.bills.length} bills</button><button id="bno" class="tbtn">Cancel</button></div></div>`}
+function blist(){const el=$("#blist");
+ if(!BULK.length){el.innerHTML="";return}
+ el.innerHTML=`<div class="bhead"><b>Created bills (${BULK.length})</b><div class="bar" style="margin:0"><button id="pall" class="pri tbtn">${ic("print")}<span>Print all</span></button><button id="dall" class="tbtn">${ic("trash")}<span>Delete all</span></button></div></div>`+
+  BULK.slice(0,shown).map((b,i)=>{const[t,sub]=labelOf(b.rows);return `<div class="bi" data-id="${b.id}"><div class="bn"><b>${i+1}. ${esc(t)}</b><small>${esc(sub)}</small></div><div class="ba">
+   <button class="ib" data-b="view" data-tip="Preview">${ic("eye")}</button><button class="ib" data-b="print" data-tip="Print this bill">${ic("print")}</button><button class="ib red" data-b="del" data-tip="Delete this bill">${ic("trash")}</button></div></div>`}).join("")+
+  (BULK.length>shown?`<div class="bar"><button id="bmore" class="tbtn">Show ${Math.min(50,BULK.length-shown)} more</button></div>`:"")}
+$("#btpl").onclick=()=>{const t=templateCsv();if(!t){alert("Add some Key Value rows first, the CSV columns come from them.");return}
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv;charset=utf-8"}));a.download="pump-bill-template.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$("#bup").onclick=()=>$("#bfile").click();
+$("#bfile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+ const buf=await f.arrayBuffer();let txt;try{txt=new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(x){txt=new TextDecoder("windows-1252").decode(buf)}
+ const t=parseCsv(txt);
+ if(t.length<2){pending={name:f.name,bills:[],total:0,unknown:[],skipped:[],error:"The file needs a header row and at least one data row."};bmsg();return}
+ const head=t[0].map(nk),known=new Set(kvKeys().map(r=>nk(r.k)));
+ const hasCalc=known.has("preset")||known.has("sale")||known.has("volume");
+ const ok=h=>known.has(h)||(h==="amount"&&hasCalc);
+ const unknown=t[0].filter((h,i)=>h.trim()&&!ok(head[i]));
+ const bills=[],skipped=[];
+ t.slice(1).forEach((cells,i)=>{if(head.some((h,j)=>ok(h)&&(cells[j]||"").trim()!==""))bills.push(makeBill(head,cells));else skipped.push(i+2)});
+ pending={name:f.name,bills,total:t.length-1,unknown,skipped,error:head.some(ok)?"":"No column matches a Key in your bill rows. Use the template CSV for the headers."};
+ bmsg()};
+$("#bres").addEventListener("click",e=>{
+ if(e.target.closest("#bno")){pending=null;bmsg()}
+ else if(e.target.closest("#bgo")){const stamp=Date.now();
+  BULK=pending.bills.map((rows,i)=>({id:stamp+"-"+i,rows})).concat(BULK);shown=50;
+  if(!bsave())alert("Browser storage is full, so these bills will not be kept after reload.");
+  pending=null;bmsg();blist()}});
+const rcOf=id=>BULK.find(b=>b.id===id);
+function printBills(list){const bp=$("#bulkprint");bp.innerHTML="";
+ list.forEach(b=>{const d=document.createElement("div");d.className="rcpt";fillReceipt(d,b.rows);bp.appendChild(d)});
+ document.body.classList.add("pb");
+ const done=()=>{document.body.classList.remove("pb");bp.innerHTML="";removeEventListener("afterprint",done)};
+ addEventListener("afterprint",done);window.print()}
+let viewing=null;
+function openView(b){viewing=b;const[t]=labelOf(b.rows);$("#ptitle").textContent=t;fillReceipt($("#prc"),b.rows);$("#pm").hidden=false}
+$("#blist").addEventListener("click",e=>{
+ if(e.target.closest("#pall"))return printBills(BULK);
+ if(e.target.closest("#dall")){if(confirm("Delete all "+BULK.length+" bills from this list?")){BULK=[];bsave();blist()}return}
+ if(e.target.closest("#bmore")){shown+=50;blist();return}
+ const btn=e.target.closest("[data-b]");if(!btn)return;
+ const b=rcOf(btn.closest(".bi").dataset.id);if(!b)return;
+ if(btn.dataset.b==="view")openView(b);
+ else if(btn.dataset.b==="print")printBills([b]);
+ else{BULK=BULK.filter(x=>x!==b);bsave();blist()}});
+$("#px").onclick=()=>$("#pm").hidden=true;
+$("#pm").addEventListener("click",e=>{if(e.target===$("#pm"))$("#pm").hidden=true});
+addEventListener("keydown",e=>{if(e.key==="Escape")$("#pm").hidden=true});
+$("#pprint").onclick=()=>{if(viewing)printBills([viewing])};
+blist();
 setPv(false);loadSettings();renderRows();calc();renderReceipt();
 </script>
 <script>
