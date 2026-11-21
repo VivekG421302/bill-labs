@@ -119,7 +119,7 @@ code { background: var(--code); padding: 0.05rem 0.35rem; border-radius: 4px; fo
 .logo-panel summary .muted { font-weight: 400; margin-left: 0.5rem; font-size: 0.85rem; }
 .logo-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; margin-top: 1rem; }
 .logo-strip { position: relative; width: 100%; aspect-ratio: 612 / 50; background: #fff; color: #000; border: 1px solid var(--line); overflow: hidden; }
-.logo-strip-title { position: absolute; left: 6.25%; top: 28%; font-size: clamp(7px, 1.6vw, 12px); font-weight: 700; }
+.logo-strip-title { position: absolute; left: 5%; top: 28%; font-size: clamp(7px, 1.6vw, 12px); font-weight: 700; }
 .logo-strip img { position: absolute; display: block; }
 .logo-controls { display: flex; flex-direction: column; gap: 0.7rem; }
 .slider { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem 0.5rem; font-size: 0.85rem; font-weight: 700; }
@@ -176,3 +176,6 @@ code { background: var(--code); padding: 0.05rem 0.35rem; border-radius: 4px; fo
 .topnav { align-items: center; }
 .theme-btn { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.7rem; margin-left: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #cfd6e2; cursor: pointer; min-height: 36px; }
 .theme-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* Desktop live preview: scale the whole A4 page to fit the window height. */
+.sticky .pdfview-canvas { width: auto; max-width: 100%; max-height: calc(100dvh - 8.5rem); margin: 0 auto; }

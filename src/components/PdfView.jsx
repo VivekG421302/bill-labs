@@ -6,7 +6,7 @@ import { PAGE } from '../cab/layout.js'
 let pdfjsP
 const loadPdfjs = () => (pdfjsP ??= import('pdfjs-dist').then((m) => { m.GlobalWorkerOptions.workerSrc = workerSrc; return m }))
 
-// Renders the real generated PDF (page 1, cropped below the content) onto a canvas,
+// Renders the real generated PDF (the full A4 page) onto a canvas,
 // so what you preview is exactly what you download. Works the same on phones.
 export default function PdfView({ bill, logo, delay = 0 }) {
   const canvas = useRef(null)
@@ -17,7 +17,7 @@ export default function PdfView({ bill, logo, delay = 0 }) {
     setState((s) => (s === 'ready' ? 'ready' : 'loading'))
     const t = setTimeout(async () => {
       try {
-        const { bytes, bottom } = await renderPreview(bill, logo)
+        const { bytes } = await renderPreview(bill, logo)
         const pdfjs = await loadPdfjs()
         loading = pdfjs.getDocument({ data: bytes.slice() })
         const pdf = await loading.promise
@@ -27,7 +27,7 @@ export default function PdfView({ bill, logo, delay = 0 }) {
         const viewport = page.getViewport({ scale })
         const c = canvas.current
         c.width = Math.round(PAGE.w * scale)
-        c.height = Math.round(Math.min(PAGE.h, bottom + 28) * scale)
+        c.height = Math.round(PAGE.h * scale)
         task = page.render({ canvasContext: c.getContext('2d'), viewport })
         await task.promise
         if (!dead) setState('ready')

@@ -2,7 +2,7 @@ import {
   AlignmentType, BorderStyle, Document, HeightRule, ImageRun, Packer, Paragraph, ShadingType, Table, TableCell, TableRow,
   TabStopType, TextRun, VerticalAlign, WidthType, LineRuleType, HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, TextWrappingType,
 } from 'docx'
-import { L, ROWS } from './layout.js'
+import { DX, L, PAGE, ROWS } from './layout.js'
 import { DEFAULT_DESCRIPTION, DEFAULT_REMARK, displayPrice, formatRideTime } from './fields.js'
 import { wrap } from './pdf.js'
 
@@ -25,7 +25,7 @@ const run = (text, font, size, extra = {}) =>
 const T = { top: 0 }
 
 export async function buildDocx(bill, assets) {
-  const widthPt = 612 - 2 * L.left               // text width: 535.5pt
+  const widthPt = L.right - L.left               // text width: 535.5pt
   const W = pt(widthPt)
   const kids = []
 
@@ -130,7 +130,7 @@ export async function buildDocx(bill, assets) {
       children: [new ImageRun({
         type: 'png', data: bytes, transformation: { width: width / 0.75, height: height / 0.75 },
         floating: {
-          horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: emu(L.logo.right + s.offsetX - width) },
+          horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: emu(L.logo.right + DX + s.offsetX - width) },
           verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: emu(L.logo.top + s.offsetY) },
           wrap: { type: TextWrappingType.NONE }, allowOverlap: true, lockAnchor: true,
         },
@@ -147,7 +147,7 @@ export async function buildDocx(bill, assets) {
     ],
     styles: { default: { document: { run: { font: { name: SERIF }, size: hp(14.4), color: '000000' }, paragraph: { spacing: { before: 0, after: 0 } } } } },
     sections: [{
-      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: pt(4.95), bottom: pt(36), left: pt(L.left), right: pt(612 - L.right), header: 0, footer: 0 } } },
+      properties: { page: { size: { width: pt(PAGE.w), height: pt(PAGE.h) }, margin: { top: pt(4.95), bottom: pt(36), left: pt(L.left + DX), right: pt(PAGE.w - L.right - DX), header: 0, footer: 0 } } },
       children: kids,
     }],
   })

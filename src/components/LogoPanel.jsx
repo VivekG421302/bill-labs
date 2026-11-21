@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { DEFAULT_LOGO, readLogoFile } from '../cab/assets.js'
 import defaultLogoUrl from '../assets/img/logo-default.png'
-import { L, PAGE } from '../cab/layout.js'
+import { DX, L, PAGE } from '../cab/layout.js'
 
 export default function LogoPanel({ logo, setLogo }) {
   const file = useRef(null)
@@ -33,7 +33,7 @@ export default function LogoPanel({ logo, setLogo }) {
               src={src} alt=""
               style={{
                 width: `${(logo.width / PAGE.w) * 100}%`,
-                right: `${((PAGE.w - (L.logo.right + logo.offsetX)) / PAGE.w) * 100}%`,
+                right: `${((PAGE.w - (L.logo.right + DX + logo.offsetX)) / PAGE.w) * 100}%`,
                 top: `${((L.logo.top + logo.offsetY) / STRIP) * 100}%`,
                 aspectRatio: `${logo.nat.w} / ${logo.nat.h}`,
               }}

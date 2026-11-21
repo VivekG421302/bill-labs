@@ -1,8 +1,12 @@
 // Every number below was measured from the client's template PDF
-// (CAB_RECEIPT_..._Sample_Format_.pdf, US Letter 612 x 792 pt, origin top-left).
+// (CAB_RECEIPT_..._Sample_Format_.pdf, 612 x 792 pt, origin top-left).
 // Change nothing here unless the template itself changes.
 
-export const PAGE = { w: 612, h: 792 }
+// The client's sample is 612 pt wide; the bill is issued on A4 (210 x 297 mm = 595.28 x 841.89 pt).
+// All x positions below are template coordinates; DX recentres them on the narrower A4 page.
+export const TEMPLATE_W = 612
+export const PAGE = { w: 595.28, h: 841.89 }
+export const DX = (PAGE.w - TEMPLATE_W) / 2
 
 export const L = {
   left: 38.25,            // left text edge

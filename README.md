@@ -18,8 +18,9 @@ The app uses relative paths and a hash router, so `dist/` works on any static ho
 ## Cab bill
 
 ### Fidelity to the client template
+The bill is issued on **A4** (595.28 x 841.89 pt) in both PDF and Word, and the preview shows the full page. The template's content block is 535.5 pt wide, so it is simply recentred on A4 (`DX` in `layout.js`); no sizes, fonts or vertical positions change.
 Every position, font and size is in `src/cab/layout.js`, measured from the client's sample PDF
-(US Letter, Open Sans for the title and addresses, Times / Liberation Serif for rows and notes, DejaVu for the ₹ sign).
+(Open Sans for the title and addresses, Times / Liberation Serif for rows and notes, DejaVu for the ₹ sign).
 `src/cab/pdf.js` draws the PDF with those numbers; `src/cab/docx.js` builds a matching Word file.
 Fonts are bundled in `src/assets/fonts`, so output is identical on every machine.
 Word only supports half-point sizes, so 14.4 pt becomes 14.5 pt, 12.6 becomes 12.5, 16.2 becomes 16 and 25.2 becomes 25.

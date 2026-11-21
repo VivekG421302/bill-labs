@@ -1,6 +1,6 @@
 import { PDFDocument, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import { L, PAGE, ROWS } from './layout.js'
+import { DX, L, PAGE, ROWS } from './layout.js'
 import { DEFAULT_DESCRIPTION, DEFAULT_REMARK, displayPrice, formatRideTime } from './fields.js'
 
 const clean = (s) => String(s ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/\u00a0/g, ' ')
@@ -53,11 +53,11 @@ export async function buildPdfDetailed(bill, assets) {
   const page = doc.addPage([PAGE.w, PAGE.h])
   const Y = (top) => PAGE.h - top
   const black = rgb(0, 0, 0)
-  const text = (s, x, base, font, size) => s && page.drawText(s, { x, y: Y(base), font, size, color: black })
+  const text = (s, x, base, font, size) => s && page.drawText(s, { x: x + DX, y: Y(base), font, size, color: black })
   const right = (s, xr, base, font, size) => s && text(s, xr - font.widthOfTextAtSize(s, size), base, font, size)
   const center = (s, cx, base, font, size) => s && text(s, cx - font.widthOfTextAtSize(s, size) / 2, base, font, size)
   const box = (x0, x1, top, bottom, c) =>
-    page.drawRectangle({ x: x0, y: Y(bottom), width: x1 - x0, height: bottom - top, color: rgb(...c) })
+    page.drawRectangle({ x: x0 + DX, y: Y(bottom), width: x1 - x0, height: bottom - top, color: rgb(...c) })
 
   // Header
   text('Booking History', L.left, L.title.base, f.sansBold, L.title.size)
@@ -65,7 +65,7 @@ export async function buildPdfDetailed(bill, assets) {
     const { bytes, w, h, settings: s } = assets.logo
     const img = await doc.embedPng(bytes)
     const width = s.width, height = (width * h) / w
-    page.drawImage(img, { x: L.logo.right + s.offsetX - width, y: Y(L.logo.top + s.offsetY + height), width, height })
+    page.drawImage(img, { x: L.logo.right + DX + s.offsetX - width, y: Y(L.logo.top + s.offsetY + height), width, height })
   }
 
   // Detail rows: label left, value right-aligned
@@ -105,7 +105,7 @@ export async function buildPdfDetailed(bill, assets) {
   if (railBottom > railTop) box(A.rail.x, A.rail.x + A.rail.w, railTop, railBottom, A.rail.color)
   const dot = async (bytes, base) => {
     const img = await doc.embedPng(bytes)
-    page.drawImage(img, { x: A.dot.x, y: Y(base - A.dot.up + A.dot.size), width: A.dot.size, height: A.dot.size })
+    page.drawImage(img, { x: A.dot.x + DX, y: Y(base - A.dot.up + A.dot.size), width: A.dot.size, height: A.dot.size })
   }
   await dot(assets.dotFrom, fromFirst)
   await dot(assets.dotTo, toFirst)
