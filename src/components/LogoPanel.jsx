@@ -18,6 +18,9 @@ export default function LogoPanel({ logo, setLogo }) {
   }
   const set = (k) => (e) => setLogo({ ...logo, [k]: Number(e.target.value) })
   const isDefault = !logo.custom && logo.width === DEFAULT_LOGO.width && !logo.offsetX && !logo.offsetY
+  // The width that fits the standard logo box for this logo's shape.
+  const fitWidth = +Math.min(L.logo.w, L.logo.h * (logo.nat.w / logo.nat.h)).toFixed(1)
+  const atFit = logo.width === fitWidth && !logo.offsetX && !logo.offsetY
 
   return (
     <details className="card logo-panel">
@@ -41,6 +44,7 @@ export default function LogoPanel({ logo, setLogo }) {
         <div className="logo-controls">
           <div className="row">
             <button type="button" className="btn" onClick={() => file.current.click()}>Upload logo</button>
+            <button type="button" className="btn" disabled={atFit} onClick={() => setLogo({ ...logo, width: fitWidth, offsetX: 0, offsetY: 0 })}>Reset size &amp; position</button>
             <button type="button" className="btn btn-ghost" disabled={isDefault} onClick={() => setLogo(DEFAULT_LOGO)}>Use default logo</button>
             <input ref={file} type="file" accept="image/*" hidden onChange={upload} />
           </div>

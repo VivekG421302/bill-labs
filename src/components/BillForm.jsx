@@ -60,7 +60,11 @@ export default function BillForm({ bill, setBill, stamp, setStamp, fileBase }) {
           </div>
           <div className="field">
             <label htmlFor="f-stamp">Timestamp date</label>
-            <input id="f-stamp" type="datetime-local" value={stamp} onChange={(e) => setStamp(e.target.value)} />
+            <div className="row nowrap">
+              <input id="f-stamp" type="datetime-local" value={stamp} onChange={(e) => setStamp(e.target.value)} />
+              <button type="button" className="btn btn-sm" disabled={!stamp} onClick={() => setStamp('')}>Auto</button>
+            </div>
+            <p className="hint">{stamp ? 'Custom date used for the file name.' : 'Auto: the file name uses the Time of ride.'}</p>
           </div>
         </div>
         <p className="hint">Saved as <code>{fileBase}</code> + .pdf or .docx</p>

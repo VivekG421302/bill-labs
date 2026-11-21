@@ -55,17 +55,34 @@ function build(y, mo, d, hh, mi, ap) {
   return dt.getMonth() === mo - 1 && dt.getDate() === d ? dt : null
 }
 
-// Accepts: 2026-10-30T07:16 | 2026-10-30 07:16 | 30-10-2026 7:16 AM | 30/10/2026 19:16 |
-// "Oct 30th 2026, 7:16 AM" (kept as typed). Anything else is printed as typed.
+// Reads a ride time typed in any of these shapes (returns a Date, or null if it is not a date):
+// 2026-10-30T07:16 | 2026-10-30 07:16 | 30-10-2026 7:16 AM | 30/10/2026 19:16 | "Oct 30th 2026, 7:16 AM"
+export function parseRideTime(raw) {
+  const s = String(raw ?? '').trim()
+  if (!s) return null
+  let m = s.match(/^([A-Za-z]{3}) (\d{1,2})(?:st|nd|rd|th) (\d{4}),? (\d{1,2}):(\d{2}) ?([AaPp][Mm])$/)
+  if (m) { const mo = MONTHS.findIndex((x) => x.toLowerCase() === m[1].toLowerCase()); return mo < 0 ? null : build(m[3], mo + 1, m[2], m[4], m[5], m[6]) }
+  m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?)?$/)
+  if (m) return build(m[1], m[2], m[3], m[4], m[5], m[6])
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:[,\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?)?$/)
+  if (m) return build(m[3], m[2], m[1], m[4], m[5], m[6])
+  return null
+}
+
+// What is printed on the bill. Text that is not a date is printed as typed.
 export function formatRideTime(raw) {
   const s = String(raw ?? '').trim()
-  if (!s) return ''
   if (ALREADY.test(s)) return s
-  let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?)?$/)
-  if (m) { const d = build(m[1], m[2], m[3], m[4], m[5], m[6]); if (d) return formatDate(d) }
-  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:[,\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?)?$/)
-  if (m) { const d = build(m[3], m[2], m[1], m[4], m[5], m[6]); if (d) return formatDate(d) }
-  return s
+  const d = parseRideTime(s)
+  return d ? formatDate(d) : s
+}
+
+// Value for <input type="datetime-local"> (local time), or the original text if it is not a date.
+export function toInputTime(raw) {
+  const d = parseRideTime(raw)
+  if (!d) return String(raw ?? '')
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 // "831" | "₹831" | "Rs. 831" -> "₹ 831"
@@ -80,6 +97,14 @@ export const sanitizeFileName = (s) =>
   String(s ?? '').replace(/\.(pdf|docx?)$/i, '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
 
 export const DEFAULT_PREFIX = 'CAB_RECEIPT'
+
+// Epoch (ms) used in a default file name: a date picked by the user wins, otherwise the bill's own
+// Time of ride, otherwise `fallback` (the moment the page was opened).
+export function epochFor(bill, override, fallback) {
+  const o = override ? new Date(override).getTime() : NaN
+  if (Number.isFinite(o)) return o
+  return parseRideTime(bill.rideTime)?.getTime() ?? fallback
+}
 
 // File name = given name, otherwise CAB_RECEIPT_<epoch ms>. Epoch comes from the chosen date.
 export function resolveFileBase(bill, epochMs) {

@@ -5,13 +5,9 @@ import LogoPanel from '../components/LogoPanel.jsx'
 import Modal from '../components/Modal.jsx'
 import PdfView from '../components/PdfView.jsx'
 import { DEFAULT_LOGO } from '../cab/assets.js'
-import { FIELDS, emptyBill, resolveFileBase } from '../cab/fields.js'
+import { FIELDS, emptyBill, epochFor, resolveFileBase, sanitizeFileName, toInputTime } from '../cab/fields.js'
 import { downloadOne } from '../cab/exporter.js'
 import { useStored } from '../cab/store.js'
-
-const pad = (n) => String(n).padStart(2, '0')
-const nowLocal = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}` }
-const epochOf = (stamp) => { const t = new Date(stamp).getTime(); return Number.isFinite(t) ? t : Date.now() }
 
 function useWide(q = '(min-width: 1000px)') {
   const [on, setOn] = useState(() => window.matchMedia(q).matches)
@@ -29,13 +25,15 @@ export default function CabBill() {
   const [records, setRecords, recErr] = useStored('billlabs.cab.records', [])
   const [tab, setTab] = useState('single')
   const [bill, setBill] = useState(emptyBill)
-  const [stamp, setStamp] = useState(nowLocal)
+  const [stamp, setStamp] = useState('')          // '' = automatic: use the bill's Time of ride
+  const [opened] = useState(() => Date.now())     // fallback when a bill has no usable Time of ride
+  const [editingId, setEditingId] = useState(null)
   const [preview, setPreview] = useState(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const wide = useWide()
 
-  const fileBase = resolveFileBase(bill, epochOf(stamp))
+  const fileBase = resolveFileBase(bill, epochFor(bill, stamp, opened))
 
   const missing = () => {
     const m = FIELDS.filter((f) => f.required && !bill[f.key].trim()).map((f) => f.label)
@@ -48,6 +46,24 @@ export default function CabBill() {
     setMsg(''); setBusy(true)
     try { await downloadOne(bill, fileBase, kind, logo) } catch (e) { console.error(e); setMsg('Could not create the file. Please try again.') } finally { setBusy(false) }
   }
+  // Open a saved bill in the form so it can be corrected.
+  const editRecord = (r) => {
+    setBill({ ...emptyBill(), ...r.bill, rideTime: toInputTime(r.bill.rideTime), fileName: r.fileBase })
+    setEditingId(r.id); setPreview(null); setMsg(''); setTab('single')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  const editing = records.find((r) => r.id === editingId)
+  const saveEdit = () => {
+    const m = missing()
+    if (m.length) return setMsg(`Please fill: ${m.join(', ')}.`)
+    const used = new Set(records.filter((r) => r.id !== editingId).map((r) => r.fileBase.toLowerCase()))
+    const wanted = sanitizeFileName(bill.fileName) || editing.fileBase
+    let base = wanted, n = 2
+    while (used.has(base.toLowerCase())) base = `${wanted}_${n++}`
+    setRecords(records.map((r) => (r.id === editingId ? { ...r, bill: { ...bill }, fileBase: base } : r)))
+    setBill(emptyBill()); setEditingId(null); setMsg(''); setTab('bulk')
+  }
+  const cancelEdit = () => { setBill(emptyBill()); setEditingId(null); setMsg('') }
   const openPreview = () => {
     const m = missing()
     if (m.length) return setMsg(`Please fill: ${m.join(', ')}.`)
@@ -71,13 +87,19 @@ export default function CabBill() {
       {tab === 'single' ? (
         <div className={wide ? 'split' : ''}>
           <div className="card">
+            {editingId && (
+              <div className="banner" role="status">
+                {editing ? <>Editing <strong>{editing.fileBase}</strong> from your list.</> : 'This bill is no longer in the list.'}
+              </div>
+            )}
             <BillForm bill={bill} setBill={setBill} stamp={stamp} setStamp={setStamp} fileBase={fileBase} />
             {msg && <p className="error" role="alert">{msg}</p>}
             <div className="row actions">
               {!wide && <button type="button" className="btn" onClick={openPreview}>Preview PDF</button>}
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => run('pdf')}>Download PDF</button>
+              {editing && <button type="button" className="btn btn-primary" onClick={saveEdit}>Save changes to list</button>}
+              <button type="button" className={editing ? 'btn' : 'btn btn-primary'} disabled={busy} onClick={() => run('pdf')}>Download PDF</button>
               <button type="button" className="btn" disabled={busy} onClick={() => run('docx')}>Download Word</button>
-              <button type="button" className="btn btn-ghost" onClick={() => { setBill(emptyBill()); setMsg('') }}>Clear form</button>
+              <button type="button" className="btn btn-ghost" onClick={cancelEdit}>{editingId ? 'Cancel edit' : 'Clear form'}</button>
             </div>
           </div>
           {wide && (
@@ -88,7 +110,7 @@ export default function CabBill() {
           )}
         </div>
       ) : (
-        <BulkPanel logo={logo} records={records} setRecords={setRecords} stamp={stamp} setStamp={setStamp} onPreview={(r) => setPreview(r)} />
+        <BulkPanel logo={logo} records={records} setRecords={setRecords} stamp={stamp} setStamp={setStamp} fallbackEpoch={opened} onPreview={(r) => setPreview(r)} />
       )}
 
       {preview && (
@@ -96,6 +118,7 @@ export default function CabBill() {
           title={preview.fileBase}
           onClose={() => setPreview(null)}
           actions={<>
+            <button type="button" className="btn" onClick={() => (preview.id ? editRecord(preview) : setPreview(null))}>Edit</button>
             <button type="button" className="btn btn-primary" onClick={() => downloadOne(preview.bill, preview.fileBase, 'pdf', logo)}>Download PDF</button>
             <button type="button" className="btn" onClick={() => downloadOne(preview.bill, preview.fileBase, 'docx', logo)}>Download Word</button>
           </>}

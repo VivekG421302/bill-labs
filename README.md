@@ -32,8 +32,13 @@ Use the in-app **Download template CSV**. Headers:
 - Required per row: CustomerName, RideID, FromLocation, ToLocation, and Price or SelectedPrice. Other rows are skipped and listed.
 - `TimeOfRide` accepts `2026-10-30 07:16`, `30/10/2026 7:16 PM`, or already-formatted `Oct 30th 2026, 7:16 AM`.
 - Empty `Description` / `Remark` use the standard client wording.
-- `FileName` empty gives `CAB_RECEIPT_<epoch ms>` from the chosen timestamp date (one millisecond apart per row).
+- `FileName` empty gives `CAB_RECEIPT_<epoch ms>`. By default the epoch is the row's own `TimeOfRide`; picking a "Timestamp date" overrides it for all rows. Equal timestamps are moved one millisecond apart so names never clash.
+- In the created list, **Preview → Edit** opens the bill in the form with its data filled in; **Save changes to list** updates it.
 - The box on the bill shows `SelectedPrice`; if empty it shows `Price`.
+
+### Theme and navigation
+Both tools use one shared theme (dark by default, toggle in the top bar, remembered in `localStorage` key `billlabs.theme`).
+The Petrol bill page has a top bar linking back to Bill Labs and the Cab bill.
 
 ### Storage
 The logo settings and the created-bills list are kept in the browser's `localStorage` (data only; files are generated on demand).

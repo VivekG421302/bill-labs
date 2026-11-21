@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { parseBillCsv, templateCsv } from '../cab/csv.js'
-import { DEFAULT_PREFIX, displayPrice, sanitizeFileName } from '../cab/fields.js'
+import { DEFAULT_PREFIX, displayPrice, epochFor, sanitizeFileName } from '../cab/fields.js'
 import { downloadOne, downloadText, downloadZip } from '../cab/exporter.js'
 
 const PAGE_SIZE = 50
@@ -11,7 +11,7 @@ async function readText(file) {
   catch { return new TextDecoder('windows-1252').decode(buf) } // Excel "CSV (Comma delimited)"
 }
 
-export default function BulkPanel({ logo, records, setRecords, stamp, setStamp, onPreview }) {
+export default function BulkPanel({ logo, records, setRecords, stamp, setStamp, fallbackEpoch, onPreview }) {
   const [parsed, setParsed] = useState(null)
   const [source, setSource] = useState('')
   const [readErr, setReadErr] = useState('')
@@ -28,15 +28,14 @@ export default function BulkPanel({ logo, records, setRecords, stamp, setStamp, 
   }
 
   const create = () => {
-    const t = new Date(stamp).getTime()
-    const epoch = Number.isFinite(t) ? t : Date.now()
     const used = new Set(records.map((r) => r.fileBase.toLowerCase()))
     const made = parsed.rows.map(({ bill }, i) => {
-      const wanted = sanitizeFileName(bill.fileName) || `${DEFAULT_PREFIX}_${epoch + i}`
-      let base = wanted, n = 2
-      while (used.has(base.toLowerCase())) base = `${wanted}_${n++}`
+      let epoch = epochFor(bill, stamp, fallbackEpoch)        // each row's own Time of ride unless a date was picked
+      let base = sanitizeFileName(bill.fileName), n = 2
+      if (base) { const w = base; while (used.has(base.toLowerCase())) base = `${w}_${n++}` }
+      else { while (used.has(`${DEFAULT_PREFIX}_${epoch}`.toLowerCase())) epoch++; base = `${DEFAULT_PREFIX}_${epoch}` }
       used.add(base.toLowerCase())
-      return { id: `${epoch}-${i}-${Math.random().toString(36).slice(2, 7)}`, bill, fileBase: base }
+      return { id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`, bill, fileBase: base }
     })
     setRecords([...made, ...records])
     setParsed(null); setSource('')
@@ -96,14 +95,17 @@ export default function BulkPanel({ logo, records, setRecords, stamp, setStamp, 
             <div className="row">
               <div className="field inline">
                 <label htmlFor="b-stamp">Timestamp date for file names</label>
-                <input id="b-stamp" type="datetime-local" value={stamp} onChange={(e) => setStamp(e.target.value)} />
+                <div className="row nowrap">
+                  <input id="b-stamp" type="datetime-local" value={stamp} onChange={(e) => setStamp(e.target.value)} />
+                  <button type="button" className="btn btn-sm" disabled={!stamp} onClick={() => setStamp('')}>Auto</button>
+                </div>
               </div>
               <button type="button" className="btn btn-primary" disabled={blocking || !parsed.rows.length} onClick={create}>
                 Create {parsed.rows.length} bills
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => setParsed(null)}>Cancel</button>
             </div>
-            <p className="hint">Rows without a File Name are saved as <code>{DEFAULT_PREFIX}_&lt;timestamp&gt;</code>, each one millisecond apart so names never clash.</p>
+            <p className="hint">Rows without a File Name are saved as <code>{DEFAULT_PREFIX}_&lt;timestamp&gt;</code>. {stamp ? 'Every row uses the date picked above.' : 'Auto: each row uses its own Time of ride.'} Equal timestamps are moved one millisecond apart so names never clash.</p>
           </div>
         )}
       </section>
