@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { NavLink, Route, Routes } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 
@@ -8,6 +8,21 @@ const CabBill = lazy(() => import('./pages/CabBill.jsx'))
 // The petrol bill tool is a standalone page kept exactly as it was
 // (public/petrol-bill). It lives on its own route, outside the React router.
 export const PETROL_URL = `${import.meta.env.BASE_URL}petrol-bill/`
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState(document.documentElement.dataset.theme)
+  const flip = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.dataset.theme = next
+    try { localStorage.setItem('billlabs.theme', next) } catch { /* theme just won't persist */ }
+    setTheme(next)
+  }
+  return (
+    <button type="button" className="theme-btn" onClick={flip} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
+      {theme === 'dark' ? 'Light' : 'Night'}
+    </button>
+  )
+}
 
 export default function App() {
   return (
@@ -19,6 +34,7 @@ export default function App() {
         <nav className="topnav" aria-label="Bill types">
           <NavLink to="/cab-bill">Cab bill</NavLink>
           <a href={PETROL_URL}>Petrol bill</a>
+          <ThemeToggle />
         </nav>
       </header>
       <main className="main">
