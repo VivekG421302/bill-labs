@@ -174,7 +174,7 @@ code { background: var(--code); padding: 0.05rem 0.35rem; border-radius: 4px; fo
 .nowrap input { flex: 1 1 auto; min-width: 0; }
 .banner { background: var(--banner); border: 1px solid var(--amber); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.92rem; overflow-wrap: anywhere; }
 .topnav { align-items: center; }
-.theme-btn { font: inherit; font-size: 0.85rem; padding: 0.4rem 0.7rem; margin-left: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #cfd6e2; cursor: pointer; min-height: 36px; }
+.theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; margin-left: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #cfd6e2; cursor: pointer; }
 .theme-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 /* Desktop live preview: scale the whole A4 page to fit the window height. */
