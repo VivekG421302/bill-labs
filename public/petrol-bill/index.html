@@ -10,6 +10,8 @@
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pump Bill">
 <style>
+@font-face{font-family:"Pump Courier";src:url("fonts/cursor-regular.woff2") format("woff2");font-weight:400 600;font-style:normal;font-display:block;ascent-override:83.25%;descent-override:30%;line-gap-override:0%}
+@font-face{font-family:"Pump Courier";src:url("fonts/cursor-bold.woff2") format("woff2");font-weight:700 900;font-style:normal;font-display:block;ascent-override:83.25%;descent-override:30%;line-gap-override:0%}
 :root{color-scheme:light;--bg:#f3f4f7;--card:#fff;--ink:#1b2430;--mut:#566274;--line:#d8dce3;--acc:#f0a919;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--accink:#2a1c00}
 :root[data-theme=dark]{color-scheme:dark;--bg:#111318;--card:#1b1f27;--ink:#e5e7eb;--mut:#9ca3af;--line:#333a47;--blue:#3b82f6}
 *{box-sizing:border-box}
@@ -97,8 +99,8 @@ small{color:var(--mut)}
 /* preview */
 .previewcol{position:sticky;top:60px;height:calc(100vh - 72px);align-self:start}
 .stage{height:100%;overflow:auto;background:#52525b;border-radius:12px;padding:8px 0;display:flex;justify-content:center;align-items:flex-start}
-:is(#receipt,.rcpt){background:#fff;color:#000;font-family:"Courier New",Courier,monospace;padding:0 4mm;overflow:hidden;flex:none}
-:is(#receipt,.rcpt) .ln{white-space:pre;font-weight:500}:is(#receipt,.rcpt) .ln.b{font-weight:800}:is(#receipt,.rcpt) .ln.c{text-align:center}
+:is(#receipt,.rcpt){background:#fff;color:#000;font-family:"Pump Courier","Courier New",Courier,monospace;padding:0 4mm;overflow:hidden;flex:none}
+:is(#receipt,.rcpt) .ln{white-space:pre;font-weight:500;padding-left:2px}:is(#receipt,.rcpt) .ln.b{font-weight:800}:is(#receipt,.rcpt) .ln.c{text-align:center}
 :is(#receipt,.rcpt) .logo img{width:100%;display:block}:is(#receipt,.rcpt) .logo{margin:0 auto}
 
 /* bulk create */
@@ -221,7 +223,7 @@ const ic=n=>`<svg class="ic"><use href="#i-${n}"/></svg>`;
 const $=q=>document.querySelector(q);
 const L=(t,b,c)=>({t:"line",v:t,b:!!b,c:!!c}),KV=(k,v)=>({t:"kv",k,v,b:false}),SP=h=>({t:"sp",v:h});
 const SAMPLE=()=>({
- s:{paper:57,font:13,lh:1.35,top:0,sa:100,lw:50,sb:18,bot:62,sep:":",align:true,showlogo:true,logo:LOGO},
+ v:3,s:{paper:57,font:14.8,lh:1.35,top:0,sa:114,lw:49,sb:20,bot:71,sep:":",align:true,showlogo:true,logo:LOGO},
  rows:[L("ALLIED AUTO SERVICE"),L("H.P.C.L DEALER"),L("MUMBAI AGRA ROAD"),L("BHIWANDI 421302"),SP(10),
  KV("Bill No","Nov-10702-ORGNL"),KV("Trns.ID","0000006111310769"),KV("Atnd.ID",""),KV("Receipt","No Receipt"),
  KV("Vehi.No","NotEntered"),KV("Mob.No","NotEntered"),KV("Date","13/11/2026"),KV("Time","09:50:20"),
@@ -230,6 +232,8 @@ const SAMPLE=()=>({
  L("THANK YOU"),L("VISIT AGAIN"),L("GST.27AAJFA2895G1Z8")]});
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.s||!Array.isArray(S.rows))S=SAMPLE();
+// v3: layout now matches the reference bill (Courier look, 15px text); carry old saved bills over once
+if(S.v!==3){const d=SAMPLE().s;["font","lh","sa","sb","bot","lw"].forEach(k=>S.s[k]=d[k]);S.v=3}
 let lw0=S.s.lw;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -336,7 +340,7 @@ function fillReceipt(R,rows){
  const s=S.s;
  R.style.width=Math.max(30,s.paper)+"mm";R.style.fontSize=s.font+"px";R.style.lineHeight=s.lh;
  R.style.paddingTop=s.top+"px";R.style.paddingBottom=s.bot+"px";
- const inner=(s.paper-8)*96/25.4,chars=Math.max(1,Math.floor(inner/(0.6*s.font)));
+ const inner=(s.paper-9)*96/25.4,chars=Math.max(1,Math.floor(inner/(0.6*s.font)));
  const kmax=Math.max(0,...rows.filter(r=>r.t==="kv").map(r=>(r.k||"").length));
  let h=`<div style="height:${s.sa}px"></div>`;
  if(s.showlogo&&s.logo)h+=`<div class="logo" style="width:${s.lw}%"><img src="${s.logo}" alt=""></div>`;
@@ -348,7 +352,7 @@ function fillReceipt(R,rows){
   else{const k=s.align?(r.k||"").padEnd(kmax):(r.k||"");h+=`<div class="ln"><span${kbold(r)?' class="bd"':''}>${esc(k+s.sep)}</span><span${r.b?' class="bd"':''}>${esc(r.v||"")}</span></div>`}
  });
  R.innerHTML=h;
- R.querySelectorAll(".ln").forEach(el=>{const w=el.textContent.length*0.6*s.font;if(w>inner+0.5)el.style.fontSize=(s.font*inner/w).toFixed(2)+"px"});
+ R.querySelectorAll(".ln").forEach(el=>{const w=el.textContent.length*0.6*s.font;if(w>inner+0.5){el.style.fontSize=(s.font*inner/w).toFixed(2)+"px";el.style.lineHeight=(s.lh*1.04).toFixed(3)}});
 }
 function renderReceipt(){
  const s=S.s;
@@ -490,7 +494,7 @@ async function billCanvas(rows,scale){
  const d=document.createElement("div");d.className="rcpt";host.appendChild(d);document.body.appendChild(host);
  try{
   fillReceipt(d,rows);
-  try{await document.fonts.ready}catch(e){}
+  try{await Promise.all([document.fonts.load('14px "Pump Courier"'),document.fonts.load('bold 14px "Pump Courier"')]);await document.fonts.ready}catch(e){}
   const imgs=[...d.querySelectorAll("img")];
   await Promise.all(imgs.map(i=>i.decode?i.decode().catch(()=>{}):0));
   const box=d.getBoundingClientRect(),W=Math.ceil(box.width),H=Math.ceil(box.height);
