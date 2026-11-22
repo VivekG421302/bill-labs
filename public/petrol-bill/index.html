@@ -51,6 +51,7 @@ label{display:flex;flex-direction:column;gap:3px}
 body.dragging,body.dragging *{cursor:grabbing!important}
 .inp{display:flex;gap:6px;min-width:0;align-items:center}
 .iw{position:relative;flex:1;min-width:0}.iw input{width:100%;padding-right:34px}.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg button{flex-direction:column;gap:2px;height:56px;line-height:1.2}.seg small{font-size:11px;color:var(--mut)}.seg button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}.seg button.on small{color:inherit}.vtag{font-size:11px;border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:6px;color:var(--mut);font-weight:400}
+.lsrow{margin-top:14px}.lsc{display:flex;gap:8px;align-items:center;margin-top:4px}.lsc input{flex:1}.lsc b{width:40px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
 .iw.two input{padding-right:64px}.iw.three input{padding-right:94px}
 .fm{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;gap:3px}
 .fm button{width:24px;height:24px;padding:0;border-radius:5px;font-weight:700;font-size:12px}
@@ -157,8 +158,9 @@ small{color:var(--mut)}
  </section>
  <section class="card" style="order:1"><h2>Quick fill</h2>
   <div class="grid" id="qf"></div>
+  <div class="lsrow"><span class="lt">Line spacing <span class="q" data-tip="Gap between the lines of the bill. Bigger number = more space">?</span></span>
+   <div class="lsc"><button id="lsm" class="ib" type="button" aria-label="Less line spacing"><svg class="ic"><use href="#i-dash"/></svg></button><input id="lsp" type="range" min="0.6" max="2.4" step="0.01"><button id="lsx" class="ib" type="button" aria-label="More line spacing"><svg class="ic"><use href="#i-plus"/></svg></button><b id="lsv"></b></div></div>
   <div class="bar">
-   <button id="qapply" class="ib" data-tip="Apply amount and rate to the Preset, Rate, Sale and Volume rows"><svg class="ic"><use href="#i-calc"/></svg></button>
    <button id="qnow" class="ib" data-tip="Set the Date and Time rows to now"><svg class="ic"><use href="#i-clock"/></svg></button>
   </div>
  </section>
@@ -265,9 +267,9 @@ const num=el=>{const n=parseFloat(el.value);return isNaN(n)?0:n};
 const fld=(id,label,tip,attrs)=>`<label><span class="lt">${label}<span class="q" data-tip="${tip}">?</span></span><input id="${id}" ${attrs}></label>`;
 
 // fields
-$("#qf").innerHTML=fld("qa","Amount (Rs.)","Money the customer pays","type=number step=0.01 value=200")+
- fld("qr","Rate (Rs./L)","Petrol price per litre","type=number step=0.01 value=111.50")+
- fld("qv","Volume","Litres = amount / rate (calculated for you)","readonly");
+$("#qf").innerHTML=fld("qr","Petrol rate (Rs./L)","Price of one litre. Stays the same on every bill until you change it","type=number step=0.01 inputmode=decimal")+
+ fld("qa","Amount (Rs.)","Money the customer pays. Litres are worked out for you","type=number step=0.01 inputmode=decimal")+
+ fld("qv","Litres","Litres given. You can also type litres and the amount is worked out","type=number step=0.01 inputmode=decimal");
 const SET=[["paper","Paper width (mm)","Width of your paper roll, 57 for the 57 mm roll","number",30,100,1],
 ["font","Font size (px)","Text size. Lines too long for the paper shrink automatically","number",8,24,.5],
 ["lh","Line height","Gap between lines. 1 is tight like the original bill","number",.5,2.5,.01],
@@ -288,7 +290,7 @@ $("#upl").onclick=()=>$("#file").click();
 $("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.s.logo=r.result;S.s.showlogo=true;change()};r.readAsDataURL(f);e.target.value=""};
 $("#lwreset").onclick=()=>{S.s.lw=lw0;change()};
 $("#reslogo").onclick=()=>{S.s.logo=LOGO;change()};
-function loadSettings(){SET.forEach(f=>$("#"+f[0]).value=S.s[f[0]]);$("#lw").value=S.s.lw}
+function loadSettings(){SET.forEach(f=>$("#"+f[0]).value=S.s[f[0]]);$("#lw").value=S.s.lw;$("#lsp").value=S.s.lh;$("#lsv").textContent=(+S.s.lh).toFixed(2)}
 
 // rows
 const TYPES={kv:["kvx","Key Value"],line:["fl","Full Line"],hr:["dash","Line"],sp:["space","Space"]};
@@ -399,13 +401,23 @@ function renderReceipt(){
 function change(){loadSettings();renderReceipt();save()}
 
 // quick fill
-const calc=()=>{const a=num($("#qa")),r=num($("#qr"));$("#qv").value=r>0?(a/r).toFixed(2)+" L":""};
-$("#qa").oninput=$("#qr").oninput=calc;
+const pn=v=>parseFloat(String(v==null?"":v).replace(/[^0-9.]/g,"")),f2=x=>String(+x.toFixed(2));
+const rowVal=k=>{const r=S.rows.find(r=>r.t==="kv"&&(r.k||"").trim().toLowerCase()===k);return r?pn(r.v):NaN};
+// the boxes above follow the bill: amount, rate and litres are always tied together
+function calc(){const a=[rowVal("sale"),rowVal("da"),rowVal("preset")].find(x=>x>0),r=[rowVal("rate"),rowVal("r")].find(x=>x>0);
+ if(a>0)$("#qa").value=f2(a);if(r>0)$("#qr").value=f2(r);
+ const A=num($("#qa")),R=num($("#qr"));$("#qv").value=A>0&&R>0?(A/R).toFixed(2):""}
 const setKey=(n,v)=>S.rows.forEach(r=>{if(r.t==="kv"&&(r.k||"").trim().toLowerCase()===n)r.v=v});
-$("#qapply").onclick=()=>{const a=num($("#qa")),r=num($("#qr"));if(!(r>0))return;
+function applyFill(){const a=num($("#qa")),r=num($("#qr"));if(!(r>0&&a>0))return;
  setKey("preset","Rs."+(Number.isInteger(a)?a:a.toFixed(2)));setKey("rate","Rs."+r.toFixed(2));
  setKey("sale","Rs."+a.toFixed(2));setKey("volume",(a/r).toFixed(2)+"L");
- setKey("da",a.toFixed(3));setKey("dv",(a/r).toFixed(2)+"0");setKey("r",r.toFixed(2)+" INR/Ltr");setKey("pst",a.toFixed(3)+" INR");renderRows();change()};
+ setKey("da",a.toFixed(3));setKey("dv",(a/r).toFixed(2)+"0");setKey("r",r.toFixed(2)+" INR/Ltr");setKey("pst",a.toFixed(3)+" INR");renderRows();change()}
+const fromAmt=()=>{const a=num($("#qa")),r=num($("#qr"));if(a>0&&r>0)$("#qv").value=(a/r).toFixed(2);applyFill()};
+$("#qa").oninput=$("#qr").oninput=fromAmt;
+$("#qv").oninput=()=>{const l=num($("#qv")),r=num($("#qr"));if(!(l>0&&r>0))return;$("#qa").value=f2(l*r);applyFill()};
+// line spacing
+const setLh=v=>{S.s.lh=Math.min(2.4,Math.max(.6,+(+v).toFixed(2)));change()};
+$("#lsp").oninput=e=>setLh(e.target.value);$("#lsm").onclick=()=>setLh(S.s.lh-.05);$("#lsx").onclick=()=>setLh(+S.s.lh+.05);
 $("#qnow").onclick=()=>{const n=new Date(),p=x=>String(x).padStart(2,"0");
  setKey("date",`${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()}`);
  setKey("time",`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`);
@@ -414,7 +426,7 @@ $("#qnow").onclick=()=>{const n=new Date(),p=x=>String(x).padStart(2,"0");
 
 // bill style switcher
 const paintVar=()=>document.querySelectorAll(".vb").forEach(b=>{const on=b.dataset.var===VARS.cur;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
-document.querySelectorAll(".vb").forEach(b=>b.onclick=()=>{if(b.dataset.var===VARS.cur)return;VARS[VARS.cur]=S;VARS.cur=b.dataset.var;S=VARS[VARS.cur];lw0=S.s.lw;renderRows();change();calc();paintVar()});
+document.querySelectorAll(".vb").forEach(b=>b.onclick=()=>{if(b.dataset.var===VARS.cur)return;VARS[VARS.cur]=S;VARS.cur=b.dataset.var;S=VARS[VARS.cur];lw0=S.s.lw;renderRows();change();applyFill();paintVar()});
 // template + print
 $("#print").onclick=()=>{renderReceipt();window.print()};
 $("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
