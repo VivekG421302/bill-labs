@@ -12,6 +12,8 @@
 <style>
 @font-face{font-family:"Pump Courier";src:url("fonts/cursor-regular.woff2") format("woff2");font-weight:400 600;font-style:normal;font-display:block;ascent-override:83.25%;descent-override:30%;line-gap-override:0%}
 @font-face{font-family:"Pump Courier";src:url("fonts/cursor-bold.woff2") format("woff2");font-weight:700 900;font-style:normal;font-display:block;ascent-override:83.25%;descent-override:30%;line-gap-override:0%}
+@font-face{font-family:"Pump Mono";src:url("fonts/mono-regular.woff2") format("woff2");font-weight:400 600;font-style:normal;font-display:block}
+@font-face{font-family:"Pump Mono";src:url("fonts/mono-bold.woff2") format("woff2");font-weight:700 900;font-style:normal;font-display:block}
 :root{color-scheme:light;--bg:#f3f4f7;--card:#fff;--ink:#1b2430;--mut:#566274;--line:#d8dce3;--acc:#f0a919;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--accink:#2a1c00}
 :root[data-theme=dark]{color-scheme:dark;--bg:#111318;--card:#1b1f27;--ink:#e5e7eb;--mut:#9ca3af;--line:#333a47;--blue:#3b82f6}
 *{box-sizing:border-box}
@@ -48,7 +50,7 @@ label{display:flex;flex-direction:column;gap:3px}
 .grip{cursor:grab;touch-action:none;border-color:transparent;background:none;color:var(--mut)}
 body.dragging,body.dragging *{cursor:grabbing!important}
 .inp{display:flex;gap:6px;min-width:0;align-items:center}
-.iw{position:relative;flex:1;min-width:0}.iw input{width:100%;padding-right:34px}.iw.two input{padding-right:64px}
+.iw{position:relative;flex:1;min-width:0}.iw input{width:100%;padding-right:34px}.iw.two input{padding-right:64px}.iw.three input{padding-right:94px}
 .fm{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;gap:3px}
 .fm button{width:24px;height:24px;padding:0;border-radius:5px;font-weight:700;font-size:12px}
 .fm button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
@@ -100,7 +102,7 @@ small{color:var(--mut)}
 .previewcol{position:sticky;top:60px;height:calc(100vh - 72px);align-self:start}
 .stage{height:100%;overflow:auto;background:#52525b;border-radius:12px;padding:8px 0;display:flex;justify-content:center;align-items:flex-start}
 :is(#receipt,.rcpt){background:#fff;color:#000;font-family:"Pump Courier","Courier New",Courier,monospace;padding:0 4mm;overflow:hidden;flex:none}
-:is(#receipt,.rcpt) .ln{white-space:pre;font-weight:500;padding-left:2px}:is(#receipt,.rcpt) .ln.b{font-weight:800}:is(#receipt,.rcpt) .ln.c{text-align:center}
+:is(#receipt,.rcpt) .ln{white-space:pre;font-weight:500}:is(#receipt,.rcpt):not(.mono) .ln{padding-left:2px}:is(#receipt,.rcpt) .in{transform-origin:0 0;white-space:pre}:is(#receipt,.rcpt) .ln.b{font-weight:800}:is(#receipt,.rcpt) .ln.c{text-align:center}
 :is(#receipt,.rcpt) .logo img{width:100%;display:block}:is(#receipt,.rcpt) .logo{margin:0 auto}
 
 /* bulk create */
@@ -184,6 +186,8 @@ small{color:var(--mut)}
   <div class="bar" style="margin:0">
    <button id="exp" class="ib" data-tip="Export this template as a .json file"><svg class="ic"><use href="#i-down"/></svg></button>
    <button id="imp" class="ib" data-tip="Import a template .json file"><svg class="ic"><use href="#i-upload"/></svg></button>
+   <button id="pset1" class="tbtn" data-tip="Pump printer log bill (small logo, tall header, dashed lines)">Log bill</button>
+   <button id="pset2" class="tbtn" data-tip="Receipt style bill (big logo, Courier)">Receipt bill</button>
    <button id="reset" class="ib" data-tip="Reset everything to the sample bill"><svg class="ic"><use href="#i-undo"/></svg></button>
    <input id="ifile" type="file" accept=".json" hidden>
   </div>
@@ -221,19 +225,29 @@ const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZgAAAHuCAAAAACHK0VVAA
 const KEY="pumpbill_v2";
 const ic=n=>`<svg class="ic"><use href="#i-${n}"/></svg>`;
 const $=q=>document.querySelector(q);
-const L=(t,b,c)=>({t:"line",v:t,b:!!b,c:!!c}),KV=(k,v)=>({t:"kv",k,v,b:false}),SP=h=>({t:"sp",v:h});
-const SAMPLE=()=>({
- v:3,s:{paper:57,font:14.8,lh:1.35,top:0,sa:114,lw:49,sb:20,bot:71,sep:":",align:true,showlogo:true,logo:LOGO},
+const L=(t,b,c,d)=>({t:"line",v:t,b:!!b,c:!!c,d:!!d}),KV=(k,v,ns)=>({t:"kv",k,v,b:false,ns:!!ns}),SP=h=>({t:"sp",v:h}),HR=()=>({t:"hr"});
+const RCPT=()=>({
+ v:4,s:{ff:"cursor",ys:1,dash:0,pad:4,paper:57,font:14.8,lh:1.35,top:0,sa:114,lw:49,sb:20,bot:71,sep:":",align:true,showlogo:true,logo:LOGO},
  rows:[L("ALLIED AUTO SERVICE"),L("H.P.C.L DEALER"),L("MUMBAI AGRA ROAD"),L("BHIWANDI 421302"),SP(10),
  KV("Bill No","Nov-10702-ORGNL"),KV("Trns.ID","0000006111310769"),KV("Atnd.ID",""),KV("Receipt","No Receipt"),
  KV("Vehi.No","NotEntered"),KV("Mob.No","NotEntered"),KV("Date","13/11/2026"),KV("Time","09:50:20"),
  KV("FP. ID","1"),KV("Nozl No","1"),KV("Fuel","PETROL"),KV("Density","756.2kg/m3"),KV("Preset","Rs.200"),
  KV("Rate","Rs.111.50"),KV("Sale","Rs.200.00"),KV("Volume","1.79L"),
  L("THANK YOU"),L("VISIT AGAIN"),L("GST.27AAJFA2895G1Z8")]});
+// pump printer log bill (HP, Allied Auto Service): small logo, tall header and DELIVERY line, 20-dash dividers
+const LOGS=()=>({
+ v:4,s:{ff:"mono",ys:1.1,dash:20,pad:2.85,paper:57,font:12.4,lh:0.946,top:0,sa:47,lw:20,sb:19,bot:24,sep:":",align:false,showlogo:true,logo:LOGO},
+ rows:[L("ALLIED AUTO SERVICE",0,0,1),L("BHIWANDI."),SP(24),
+ KV("PRINT DT","12NOV2026 11:38"),KV("PUMP SERIAL NUMBER",""),L("16AH1701K"),KV("MODEL","1224/2224"),HR(),
+ L("-:U_LOGS-DELIVERY :-",0,0,1),HR(),
+ KV("LAST","  2 NOZ-1 AMTPR"),KV("Date Time","12-NOV-2026  11:37",1),KV("DA","110.000"),KV("DV","0.990"),KV("R","111.50 INR/Ltr"),
+ KV("SALES","2098254"),KV("TXN","6111217733"),KV("SH","2_INVC:3681796"),KV("A","437768190.120"),KV("V","4266471.110"),
+ KV("PST","110.000 INR"),KV("VEH. NO","NOT ENTERED"),HR()]});
+const SAMPLE=LOGS;
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.s||!Array.isArray(S.rows))S=SAMPLE();
-// v3: layout now matches the reference bill (Courier look, 15px text); carry old saved bills over once
-if(S.v!==3){const d=SAMPLE().s;["font","lh","sa","sb","bot","lw"].forEach(k=>S.s[k]=d[k]);S.v=3}
+// v4: default is now the pump printer log bill from the photo
+if(S.v!==4)S=SAMPLE();
 let lw0=S.s.lw;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -246,12 +260,15 @@ $("#qf").innerHTML=fld("qa","Amount (Rs.)","Money the customer pays","type=numbe
  fld("qv","Volume","Litres = amount / rate (calculated for you)","readonly");
 const SET=[["paper","Paper width (mm)","Width of your paper roll, 57 for the 57 mm roll","number",30,100,1],
 ["font","Font size (px)","Text size. Lines too long for the paper shrink automatically","number",8,24,.5],
-["lh","Line height","Gap between lines. 1 is tight like the original bill","number",1,2.5,.05],
+["lh","Line height","Gap between lines. 1 is tight like the original bill","number",.5,2.5,.01],
 ["top","Top margin (px)","Extra blank space at the very top of the bill","number",0,400,1],
 ["sa","Space above logo (px)","Blank space between the top edge and the logo","number",0,400,1],
 ["sb","Space below logo (px)","Blank space between the logo and the first line","number",0,400,1],
 ["bot","Bottom margin (px)","Blank space after the last line before the paper is cut","number",0,400,1],
-["sep","Separator","Characters printed between key and value, e.g. :","text"]];
+["sep","Separator","Characters printed between key and value, e.g. :","text"],
+["ys","Letter height","Stretches the letters taller like the pump printer. 1 = normal","number",.5,3,.05],
+["dash","Divider length","Number of dashes a Line row prints. 0 = fill the paper width","number",0,60,1],
+["pad","Side margin (mm)","Blank space to the left and right of the text","number",0,15,.05]];
 $("#setgrid").innerHTML=SET.map(f=>fld(f[0],f[1],f[2],f[3]==="text"?'maxlength=3':`type=number min=${f[4]} max=${f[5]} step=${f[6]}`)).join("");
 SET.forEach(f=>$("#"+f[0]).addEventListener("input",e=>{S.s[f[0]]=f[3]==="text"?e.target.value:(parseFloat(e.target.value)||0);change()}));
 $("#lw").addEventListener("input",e=>{S.s.lw=+e.target.value;change()});
@@ -274,7 +291,7 @@ function renderRows(){
  $("#rows").innerHTML=S.rows.map((r,i)=>{
   let inp;
   if(r.t==="kv")inp=`<div class="iw"><input data-f="k" placeholder="Key" value="${esc(r.k)}"><div class="fm">${mb("kb","B","Bold key",kbold(r))}</div></div><div class="iw"><input data-f="v" placeholder="Value" value="${esc(r.v)}"><div class="fm">${mb("b","B","Bold value",r.b)}</div></div>`;
-  else if(r.t==="line")inp=`<div class="iw two"><input data-f="v" placeholder="Full line text" value="${esc(r.v)}"><div class="fm">${mb("b","B","Bold",r.b)}${mb("c",ic("center"),"Centre the text",r.c)}</div></div>`;
+  else if(r.t==="line")inp=`<div class="iw three"><input data-f="v" placeholder="Full line text" value="${esc(r.v)}"><div class="fm">${mb("b","B","Bold",r.b)}${mb("c",ic("center"),"Centre the text",r.c)}${mb("d",ic("scale"),"Tall letters (double height, like the header)",r.d)}</div></div>`;
   else if(r.t==="hr")inp=`<span class="lab">${ic("dash")} Divider line</span>`;
   else inp=`<div class="iw"><input data-f="v" type="number" min="0" value="${esc(r.v||10)}"></div><span class="lab">${ic("space")} px space</span>`;
   return `<div class="rw" data-i="${i}"><div class="back l">${flip(r,"")}</div><div class="back r"><button class="ib" data-a="del">${ic("x")}</button></div>
@@ -294,7 +311,7 @@ $("#rows").addEventListener("click",e=>{
  const rw=b.closest(".rw"),i=+rw.dataset.i,r=S.rows[i];let a=b.dataset.a;if(a==="flip")a=r.t==="kv"?"line":"kv";
  if(a==="edit"){const p=rw.querySelector(".pop");p.hidden=!p.hidden;return}
  if(a==="del")S.rows.splice(i,1);
- else if(a==="b")r.b=!r.b;else if(a==="c")r.c=!r.c;else if(a==="kb")r.kb=!kbold(r);
+ else if(a==="b")r.b=!r.b;else if(a==="c")r.c=!r.c;else if(a==="d")r.d=!r.d;else if(a==="kb")r.kb=!kbold(r);
  else if(a==="kv"&&r.t!=="kv"){const q=r._kv;r.t="kv";r.k=q?q.k:"";r.v=q?q.v:(r.v||"")}
  else if(a==="line"&&r.t!=="line"){r._kv={k:r.k||"",v:r.v||""};r.t="line";r.v=(r.k?r.k+S.s.sep:"")+r._kv.v}
  renderRows();change()});
@@ -337,28 +354,35 @@ $("#menu").onclick=e=>{const b=e.target.closest("[data-add]");if(!b)return;addTy
 
 // receipt
 function fillReceipt(R,rows){
- const s=S.s;
+ const s=S.s,ys=s.ys>0?s.ys:1,pad=s.pad==null?4:s.pad,TF=1.7,TH=1.9;
+ R.classList.toggle("mono",s.ff==="mono");
  R.style.width=Math.max(30,s.paper)+"mm";R.style.fontSize=s.font+"px";R.style.lineHeight=s.lh;
- R.style.paddingTop=s.top+"px";R.style.paddingBottom=s.bot+"px";
- const inner=(s.paper-9)*96/25.4,chars=Math.max(1,Math.floor(inner/(0.6*s.font)));
+ R.style.paddingTop=s.top+"px";R.style.paddingBottom=s.bot+"px";R.style.paddingLeft=R.style.paddingRight=pad+"mm";
+ R.style.fontFamily=s.ff==="mono"?'"Pump Mono","Liberation Mono","DejaVu Sans Mono","Courier New",monospace':"";
+ const inner=(s.paper-2*pad-1)*96/25.4,chars=s.dash>0?Math.floor(s.dash):Math.max(1,Math.floor(inner/(0.6*s.font)));
  const kmax=Math.max(0,...rows.filter(r=>r.t==="kv").map(r=>(r.k||"").length));
+ const ln=(cls,html,d)=>{
+  if(ys===1&&!d)return `<div class="ln${cls}">${html}</div>`;
+  const sy=ys*(d?TF:1),H=s.font*s.lh*ys*(d?TH:1);
+  return `<div class="ln${cls}" style="height:${H.toFixed(2)}px"><div class="in" data-sy="${sy}" style="transform:scaleY(${sy});line-height:${(H/sy).toFixed(3)}px">${html}</div></div>`};
  let h=`<div style="height:${s.sa}px"></div>`;
  if(s.showlogo&&s.logo)h+=`<div class="logo" style="width:${s.lw}%"><img src="${s.logo}" alt=""></div>`;
  h+=`<div style="height:${s.sb}px"></div>`;
  rows.forEach(r=>{
   if(r.t==="sp")h+=`<div style="height:${parseFloat(r.v)||0}px"></div>`;
-  else if(r.t==="hr")h+=`<div class="ln">${"-".repeat(chars)}</div>`;
-  else if(r.t==="line")h+=`<div class="ln${r.b?" b":""}${r.c?" c":""}">${esc(r.v||"")||"&nbsp;"}</div>`;
-  else{const k=s.align?(r.k||"").padEnd(kmax):(r.k||"");h+=`<div class="ln"><span${kbold(r)?' class="bd"':''}>${esc(k+s.sep)}</span><span${r.b?' class="bd"':''}>${esc(r.v||"")}</span></div>`}
+  else if(r.t==="hr")h+=ln("","-".repeat(chars));
+  else if(r.t==="line")h+=ln((r.b?" b":"")+(r.c?" c":""),esc(r.v||"")||"&nbsp;",r.d);
+  else if(r.ns)h+=ln("",`<span${r.b?' class="bd"':''}>${esc(r.v||"")||"&nbsp;"}</span>`);
+  else{const k=s.align?(r.k||"").padEnd(kmax):(r.k||"");h+=ln("",`<span${kbold(r)?' class="bd"':''}>${esc(k+s.sep)}</span><span${r.b?' class="bd"':''}>${esc(r.v||"")}</span>`)}
  });
  R.innerHTML=h;
- R.querySelectorAll(".ln").forEach(el=>{const w=el.textContent.length*0.6*s.font;if(w>inner+0.5){el.style.fontSize=(s.font*inner/w).toFixed(2)+"px";el.style.lineHeight=(s.lh*1.04).toFixed(3)}});
+ R.querySelectorAll(".ln").forEach(el=>{const w=el.textContent.length*0.6*s.font;if(w>inner+0.5){el.style.fontSize=(s.font*inner/w).toFixed(2)+"px";if(!el.firstElementChild||!el.firstElementChild.dataset.sy)el.style.lineHeight=(s.lh*1.04).toFixed(3)}})
 }
 function renderReceipt(){
  const s=S.s;
  $("#pg").textContent=`@page{size:${s.paper}mm auto;margin:0}@media print{#receipt,.rcpt{width:${s.paper}mm}}`;
  fillReceipt($("#receipt"),S.rows);
- $("#lwo").textContent=s.lw+"%";{const d=s.lw-lw0;$("#lcap").textContent=`${((s.paper-8)*s.lw/100).toFixed(1)} mm wide · was ${lw0}%, now ${s.lw}%${d?` (${d>0?"+":""}${d})`:""}`}
+ $("#lwo").textContent=s.lw+"%";{const d=s.lw-lw0;$("#lcap").textContent=`${((s.paper-2*(s.pad==null?4:s.pad))*s.lw/100).toFixed(1)} mm wide · was ${lw0}%, now ${s.lw}%${d?` (${d>0?"+":""}${d})`:""}`}
  const mi=$("#mimg"),gi=$("#gimg");if(mi.getAttribute("src")!==s.logo)mi.src=gi.src=s.logo||"";mi.style.width=s.lw+"%";gi.style.width=lw0+"%";$("#mini").style.opacity=s.showlogo?1:.3;
  $("#tglogo").classList.toggle("on",!!s.showlogo);$("#tgalign").classList.toggle("on",!!s.align);
 }
@@ -370,10 +394,13 @@ $("#qa").oninput=$("#qr").oninput=calc;
 const setKey=(n,v)=>S.rows.forEach(r=>{if(r.t==="kv"&&(r.k||"").trim().toLowerCase()===n)r.v=v});
 $("#qapply").onclick=()=>{const a=num($("#qa")),r=num($("#qr"));if(!(r>0))return;
  setKey("preset","Rs."+(Number.isInteger(a)?a:a.toFixed(2)));setKey("rate","Rs."+r.toFixed(2));
- setKey("sale","Rs."+a.toFixed(2));setKey("volume",(a/r).toFixed(2)+"L");renderRows();change()};
+ setKey("sale","Rs."+a.toFixed(2));setKey("volume",(a/r).toFixed(2)+"L");
+ setKey("da",a.toFixed(3));setKey("dv",(a/r).toFixed(2)+"0");setKey("r",r.toFixed(2)+" INR/Ltr");setKey("pst",a.toFixed(3)+" INR");renderRows();change()};
 $("#qnow").onclick=()=>{const n=new Date(),p=x=>String(x).padStart(2,"0");
  setKey("date",`${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()}`);
- setKey("time",`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`);renderRows();change()};
+ setKey("time",`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`);
+ const M=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],hm=d=>`${p(d.getHours())}:${p(d.getMinutes())}`,sale=new Date(n-60000);
+ setKey("date time",`${p(sale.getDate())}-${M[sale.getMonth()]}-${sale.getFullYear()}  ${hm(sale)}`);setKey("print dt",`${p(n.getDate())}${M[n.getMonth()]}${n.getFullYear()} ${hm(n)}`);renderRows();change()};
 
 // template + print
 $("#print").onclick=()=>{renderReceipt();window.print()};
@@ -383,6 +410,8 @@ $("#imp").onclick=()=>$("#ifile").click();
 $("#ifile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{try{const j=JSON.parse(r.result);if(j.s&&Array.isArray(j.rows)){S=j;lw0=S.s.lw;renderRows();change()}else alert("Not a valid template file")}catch(x){alert("Could not read file")}};
  r.readAsText(f);e.target.value=""};
+const usePreset=(f,n)=>{if(confirm("Switch to the "+n+" layout? Your current rows will be replaced.")){S=f();lw0=S.s.lw;renderRows();change();calc()}};
+$("#pset1").onclick=()=>usePreset(LOGS,"log bill");$("#pset2").onclick=()=>usePreset(RCPT,"receipt bill");
 $("#reset").onclick=()=>{if(confirm("Reset everything to the sample bill?")){S=SAMPLE();lw0=S.s.lw;renderRows();change();calc()}};
 
 // mobile preview: tap = switch, hold = peek
@@ -423,13 +452,13 @@ function parseCsv(t){
  if(f!==""||row.length){row.push(f);out.push(row)}
  return out.filter(r=>r.some(x=>x.trim()!==""))}
 const q=v=>/[",\r\n;]/.test(v)?'"'+String(v).replace(/"/g,'""')+'"':String(v);
-const DERIVED=["preset","sale","volume"];
+const DERIVED=["preset","sale","volume","da","dv","pst"];
 const kvKeys=()=>{const seen=new Set(),o=[];S.rows.forEach(r=>{if(r.t==="kv"){const k=(r.k||"").trim();if(k&&!seen.has(nk(k))){seen.add(nk(k));o.push(r)}}});return o};
 function templateCsv(){
  const kv=kvKeys(),hasCalc=kv.some(r=>DERIVED.includes(nk(r.k)));
  const cols=[];let amountAt=false;
  kv.forEach(r=>{if(DERIVED.includes(nk(r.k))){if(!amountAt){cols.push({h:"Amount",v:String(num($("#qa"))||"")});amountAt=true}}
-  else cols.push({h:r.k.trim(),v:nk(r.k)==="rate"?String(num($("#qr"))||r.v||""):(r.v||"")})});
+  else cols.push({h:r.k.trim(),v:(nk(r.k)==="rate"||nk(r.k)==="r")?String(num($("#qr"))||r.v||""):(r.v||"")})});
  if(!hasCalc&&!cols.length)return "";
  return "\ufeff"+cols.map(c=>q(c.h)).join(",")+"\r\n"+cols.map(c=>q(c.v)).join(",")+"\r\n"}
 const setAll=(rows,key,val)=>rows.forEach(r=>{if(r.t==="kv"&&nk(r.k)===key)r.v=val});
@@ -437,15 +466,16 @@ function makeBill(head,cells){
  const rows=JSON.parse(JSON.stringify(S.rows)),val={};
  head.forEach((h,i)=>{const v=(cells[i]||"").trim();if(h&&v!=="")val[h]=v});
  let calc=false;
- const a=parseFloat((val.amount||"").replace(/[^0-9.]/g,"")),rt=parseFloat((val.rate||"").replace(/[^0-9.]/g,""))||num($("#qr"));
+ const a=parseFloat((val.amount||"").replace(/[^0-9.]/g,"")),rt=parseFloat((val.rate||val.r||"").replace(/[^0-9.]/g,""))||num($("#qr"));
  if(a>0&&rt>0){calc=true;
   setAll(rows,"preset","Rs."+(Number.isInteger(a)?a:a.toFixed(2)));setAll(rows,"rate","Rs."+rt.toFixed(2));
-  setAll(rows,"sale","Rs."+a.toFixed(2));setAll(rows,"volume",(a/rt).toFixed(2)+"L")}
- Object.keys(val).forEach(k=>{if(k==="amount"||(calc&&k==="rate"))return;setAll(rows,k,val[k])});
+  setAll(rows,"sale","Rs."+a.toFixed(2));setAll(rows,"volume",(a/rt).toFixed(2)+"L");
+  setAll(rows,"da",a.toFixed(3));setAll(rows,"dv",(a/rt).toFixed(2)+"0");setAll(rows,"r",rt.toFixed(2)+" INR/Ltr");setAll(rows,"pst",a.toFixed(3)+" INR")}
+ Object.keys(val).forEach(k=>{if(k==="amount"||(calc&&(k==="rate"||k==="r")))return;setAll(rows,k,val[k])});
  return rows}
 const labelOf=rows=>{const f=k=>{const r=rows.find(r=>r.t==="kv"&&nk(r.k)===k);return r?(r.v||""):""};
- const title=f("billno")||f("trnsid")||(rows.find(r=>r.t==="kv"&&r.v)||{}).v||"Bill";
- const sub=[f("date"),f("time"),f("sale"),f("vehino")].filter(Boolean).join(" · ");return[title,sub]};
+ const title=f("billno")||f("trnsid")||f("txn")||(rows.find(r=>r.t==="kv"&&r.v)||{}).v||"Bill";
+ const sub=[f("date"),f("time"),f("datetime"),f("sale"),f("da"),f("vehino")].filter(Boolean).join(" · ");return[title,sub]};
 function bmsg(){const el=$("#bres");
  if(!pending){el.innerHTML="";return}
  const p=pending;
@@ -468,7 +498,7 @@ $("#bfile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f
  const t=parseCsv(txt);
  if(t.length<2){pending={name:f.name,bills:[],total:0,unknown:[],skipped:[],error:"The file needs a header row and at least one data row."};bmsg();return}
  const head=t[0].map(nk),known=new Set(kvKeys().map(r=>nk(r.k)));
- const hasCalc=known.has("preset")||known.has("sale")||known.has("volume");
+ const hasCalc=DERIVED.some(k=>known.has(k));
  const ok=h=>known.has(h)||(h==="amount"&&hasCalc);
  const unknown=t[0].filter((h,i)=>h.trim()&&!ok(head[i]));
  const bills=[],skipped=[];
@@ -494,7 +524,7 @@ async function billCanvas(rows,scale){
  const d=document.createElement("div");d.className="rcpt";host.appendChild(d);document.body.appendChild(host);
  try{
   fillReceipt(d,rows);
-  try{await Promise.all([document.fonts.load('14px "Pump Courier"'),document.fonts.load('bold 14px "Pump Courier"')]);await document.fonts.ready}catch(e){}
+  try{await Promise.all([document.fonts.load('14px "Pump Courier"'),document.fonts.load('bold 14px "Pump Courier"'),document.fonts.load('14px "Pump Mono"'),document.fonts.load('bold 14px "Pump Mono"')]);await document.fonts.ready}catch(e){}
   const imgs=[...d.querySelectorAll("img")];
   await Promise.all(imgs.map(i=>i.decode?i.decode().catch(()=>{}):0));
   const box=d.getBoundingClientRect(),W=Math.ceil(box.width),H=Math.ceil(box.height);
@@ -507,8 +537,9 @@ async function billCanvas(rows,scale){
    rg.selectNodeContents(n);const r=rg.getBoundingClientRect();if(!r.width&&!r.height)continue;
    const cs=getComputedStyle(n.parentElement);
    c.font=`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;c.fillStyle=cs.color;
-   const asc=c.measureText("M").fontBoundingBoxAscent;
-   c.fillText(n.nodeValue,r.left-box.left,r.top-box.top+(asc!=null?asc:r.height*.8))}
+   const asc=c.measureText("M").fontBoundingBoxAscent,inn=n.parentElement.closest("[data-sy]");
+   if(inn){const sy=+inn.dataset.sy,eb=inn.getBoundingClientRect();c.save();c.translate(r.left-box.left,eb.top-box.top);c.scale(1,sy);c.fillText(n.nodeValue,0,(r.top-eb.top)/sy+(asc!=null?asc:r.height/sy*.8));c.restore()}
+   else c.fillText(n.nodeValue,r.left-box.left,r.top-box.top+(asc!=null?asc:r.height*.8))}
   return cv}
  finally{host.remove()}}
 const pngBlob=cv=>new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(new Error("PNG failed")),"image/png"));
