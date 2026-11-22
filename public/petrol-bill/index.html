@@ -50,7 +50,8 @@ label{display:flex;flex-direction:column;gap:3px}
 .grip{cursor:grab;touch-action:none;border-color:transparent;background:none;color:var(--mut)}
 body.dragging,body.dragging *{cursor:grabbing!important}
 .inp{display:flex;gap:6px;min-width:0;align-items:center}
-.iw{position:relative;flex:1;min-width:0}.iw input{width:100%;padding-right:34px}.iw.two input{padding-right:64px}.iw.three input{padding-right:94px}
+.iw{position:relative;flex:1;min-width:0}.iw input{width:100%;padding-right:34px}.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}.seg button{flex-direction:column;gap:2px;height:56px;line-height:1.2}.seg small{font-size:11px;color:var(--mut)}.seg button.on{background:var(--acc);color:var(--accink);border-color:var(--acc)}.seg button.on small{color:inherit}.vtag{font-size:11px;border:1px solid var(--line);border-radius:5px;padding:0 5px;margin-left:6px;color:var(--mut);font-weight:400}
+.iw.two input{padding-right:64px}.iw.three input{padding-right:94px}
 .fm{position:absolute;right:5px;top:50%;transform:translateY(-50%);display:flex;gap:3px}
 .fm button{width:24px;height:24px;padding:0;border-radius:5px;font-weight:700;font-size:12px}
 .fm button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
@@ -150,6 +151,10 @@ small{color:var(--mut)}
 </header>
 <div class="app">
 <div class="editor">
+ <section class="card" style="order:0"><h2>Bill style</h2>
+  <div class="seg"><button class="vb" data-var="small" type="button"><b>Small bill</b><small>Pump printer log: small logo</small></button><button class="vb" data-var="big" type="button"><b>Big bill</b><small>Receipt: big logo</small></button></div>
+  <p class="small" style="margin:8px 0 0">Each style keeps its own rows and settings. New bills, previews, printing and CSV use the style selected here.</p>
+ </section>
  <section class="card" style="order:1"><h2>Quick fill</h2>
   <div class="grid" id="qf"></div>
   <div class="bar">
@@ -186,8 +191,6 @@ small{color:var(--mut)}
   <div class="bar" style="margin:0">
    <button id="exp" class="ib" data-tip="Export this template as a .json file"><svg class="ic"><use href="#i-down"/></svg></button>
    <button id="imp" class="ib" data-tip="Import a template .json file"><svg class="ic"><use href="#i-upload"/></svg></button>
-   <button id="pset1" class="tbtn" data-tip="Pump printer log bill (small logo, tall header, dashed lines)">Log bill</button>
-   <button id="pset2" class="tbtn" data-tip="Receipt style bill (big logo, Courier)">Receipt bill</button>
    <button id="reset" class="ib" data-tip="Reset everything to the sample bill"><svg class="ic"><use href="#i-undo"/></svg></button>
    <input id="ifile" type="file" accept=".json" hidden>
   </div>
@@ -244,12 +247,19 @@ const LOGS=()=>({
  KV("SALES","2098254"),KV("TXN","6111217733"),KV("SH","2_INVC:3681796"),KV("A","437768190.120"),KV("V","4266471.110"),
  KV("PST","110.000 INR"),KV("VEH. NO","NOT ENTERED"),HR()]});
 const SAMPLE=LOGS;
-let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!S||!S.s||!Array.isArray(S.rows))S=SAMPLE();
-// v4: default is now the pump printer log bill from the photo
-if(S.v!==4)S=SAMPLE();
+// two bill styles are kept side by side: "small" (pump printer log) and "big" (receipt)
+const VK="pumpbill_vars";
+const okS=x=>x&&x.s&&Array.isArray(x.rows);
+let VARS=null;try{VARS=JSON.parse(localStorage.getItem(VK))}catch(e){}
+if(!VARS||!okS(VARS.small)||!okS(VARS.big)){
+ let old=null;try{old=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+ VARS={cur:"small",small:LOGS(),big:RCPT()};
+ if(okS(old)&&old.v===4)VARS[old.s.ff==="mono"?"small":"big"]=old}
+if(VARS.cur!=="big")VARS.cur="small";
+let S=VARS[VARS.cur];
 let lw0=S.s.lw;
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{try{VARS[VARS.cur]=S;localStorage.setItem(VK,JSON.stringify(VARS))}catch(e){}};
+const stOf=b=>(VARS[b&&b.v]||VARS[b&&b.rows&&b.rows.some(r=>r.t==="kv"&&nk(r.k)==="billno")?"big":"small"]).s;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const num=el=>{const n=parseFloat(el.value);return isNaN(n)?0:n};
 const fld=(id,label,tip,attrs)=>`<label><span class="lt">${label}<span class="q" data-tip="${tip}">?</span></span><input id="${id}" ${attrs}></label>`;
@@ -353,8 +363,8 @@ $("#addmenu").onclick=()=>{const m=$("#menu");m.hidden=!m.hidden;$("#addmenu").c
 $("#menu").onclick=e=>{const b=e.target.closest("[data-add]");if(!b)return;addType=b.dataset.add;lbl();$("#menu").hidden=true;$("#addmenu").classList.remove("open")};
 
 // receipt
-function fillReceipt(R,rows){
- const s=S.s,ys=s.ys>0?s.ys:1,pad=s.pad==null?4:s.pad,TF=1.7,TH=1.9;
+function fillReceipt(R,rows,st){
+ const s=st||S.s,ys=s.ys>0?s.ys:1,pad=s.pad==null?4:s.pad,TF=1.7,TH=1.9;
  R.classList.toggle("mono",s.ff==="mono");
  R.style.width=Math.max(30,s.paper)+"mm";R.style.fontSize=s.font+"px";R.style.lineHeight=s.lh;
  R.style.paddingTop=s.top+"px";R.style.paddingBottom=s.bot+"px";R.style.paddingLeft=R.style.paddingRight=pad+"mm";
@@ -402,6 +412,9 @@ $("#qnow").onclick=()=>{const n=new Date(),p=x=>String(x).padStart(2,"0");
  const M=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],hm=d=>`${p(d.getHours())}:${p(d.getMinutes())}`,sale=new Date(n-60000);
  setKey("date time",`${p(sale.getDate())}-${M[sale.getMonth()]}-${sale.getFullYear()}  ${hm(sale)}`);setKey("print dt",`${p(n.getDate())}${M[n.getMonth()]}${n.getFullYear()} ${hm(n)}`);renderRows();change()};
 
+// bill style switcher
+const paintVar=()=>document.querySelectorAll(".vb").forEach(b=>{const on=b.dataset.var===VARS.cur;b.classList.toggle("on",on);b.setAttribute("aria-pressed",on)});
+document.querySelectorAll(".vb").forEach(b=>b.onclick=()=>{if(b.dataset.var===VARS.cur)return;VARS[VARS.cur]=S;VARS.cur=b.dataset.var;S=VARS[VARS.cur];lw0=S.s.lw;renderRows();change();calc();paintVar()});
 // template + print
 $("#print").onclick=()=>{renderReceipt();window.print()};
 $("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
@@ -410,9 +423,7 @@ $("#imp").onclick=()=>$("#ifile").click();
 $("#ifile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{try{const j=JSON.parse(r.result);if(j.s&&Array.isArray(j.rows)){S=j;lw0=S.s.lw;renderRows();change()}else alert("Not a valid template file")}catch(x){alert("Could not read file")}};
  r.readAsText(f);e.target.value=""};
-const usePreset=(f,n)=>{if(confirm("Switch to the "+n+" layout? Your current rows will be replaced.")){S=f();lw0=S.s.lw;renderRows();change();calc()}};
-$("#pset1").onclick=()=>usePreset(LOGS,"log bill");$("#pset2").onclick=()=>usePreset(RCPT,"receipt bill");
-$("#reset").onclick=()=>{if(confirm("Reset everything to the sample bill?")){S=SAMPLE();lw0=S.s.lw;renderRows();change();calc()}};
+$("#reset").onclick=()=>{if(confirm("Reset the "+(VARS.cur==="big"?"big":"small")+" bill to its sample?")){S=VARS.cur==="big"?RCPT():LOGS();lw0=S.s.lw;renderRows();change();calc()}};
 
 // mobile preview: tap = switch, hold = peek
 const pvb=$("#pvb");let pvOn=false,peek=false,ht,sy=0;
@@ -487,7 +498,7 @@ function bmsg(){const el=$("#bres");
 function blist(){const el=$("#blist");
  if(!BULK.length){el.innerHTML="";return}
  el.innerHTML=`<div class="bhead"><b>Created bills (${BULK.length})</b><div class="bar" style="margin:0"><button id="pall" class="pri tbtn">${ic("print")}<span>Print all</span></button><button id="iall" class="tbtn" data-tip="Download every bill as a PNG image inside one ZIP file">${ic("dlimg")}<span>Images (ZIP)</span></button><button id="dall" class="tbtn">${ic("trash")}<span>Delete all</span></button></div></div>`+
-  BULK.slice(0,shown).map((b,i)=>{const[t,sub]=labelOf(b.rows);return `<div class="bi" data-id="${b.id}"><div class="bn"><b>${i+1}. ${esc(t)}</b><small>${esc(sub)}</small></div><div class="ba">
+  BULK.slice(0,shown).map((b,i)=>{const[t,sub]=labelOf(b.rows);return `<div class="bi" data-id="${b.id}"><div class="bn"><b>${i+1}. ${esc(t)}<span class="vtag">${(b.v||(stOf(b).ff==="mono"?"small":"big"))==="big"?"Big":"Small"}</span></b><small>${esc(sub)}</small></div><div class="ba">
    <button class="ib" data-b="view" data-tip="Preview">${ic("eye")}</button><button class="ib" data-b="print" data-tip="Print this bill">${ic("print")}</button><button class="ib" data-b="img" data-tip="Download this bill as an image (PNG)">${ic("dlimg")}</button><button class="ib red" data-b="del" data-tip="Delete this bill">${ic("trash")}</button></div></div>`}).join("")+
   (BULK.length>shown?`<div class="bar"><button id="bmore" class="tbtn">Show ${Math.min(50,BULK.length-shown)} more</button></div>`:"")}
 $("#btpl").onclick=()=>{const t=templateCsv();if(!t){alert("Add some Key Value rows first, the CSV columns come from them.");return}
@@ -496,34 +507,34 @@ $("#bup").onclick=()=>$("#bfile").click();
 $("#bfile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
  const buf=await f.arrayBuffer();let txt;try{txt=new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(x){txt=new TextDecoder("windows-1252").decode(buf)}
  const t=parseCsv(txt);
- if(t.length<2){pending={name:f.name,bills:[],total:0,unknown:[],skipped:[],error:"The file needs a header row and at least one data row."};bmsg();return}
+ if(t.length<2){pending={v:VARS.cur,name:f.name,bills:[],total:0,unknown:[],skipped:[],error:"The file needs a header row and at least one data row."};bmsg();return}
  const head=t[0].map(nk),known=new Set(kvKeys().map(r=>nk(r.k)));
  const hasCalc=DERIVED.some(k=>known.has(k));
  const ok=h=>known.has(h)||(h==="amount"&&hasCalc);
  const unknown=t[0].filter((h,i)=>h.trim()&&!ok(head[i]));
  const bills=[],skipped=[];
  t.slice(1).forEach((cells,i)=>{if(head.some((h,j)=>ok(h)&&(cells[j]||"").trim()!==""))bills.push(makeBill(head,cells));else skipped.push(i+2)});
- pending={name:f.name,bills,total:t.length-1,unknown,skipped,error:head.some(ok)?"":"No column matches a Key in your bill rows. Use the template CSV for the headers."};
+ pending={v:VARS.cur,name:f.name,bills,total:t.length-1,unknown,skipped,error:head.some(ok)?"":"No column matches a Key in your bill rows. Use the template CSV for the headers."};
  bmsg()};
 $("#bres").addEventListener("click",e=>{
  if(e.target.closest("#bno")){pending=null;bmsg()}
  else if(e.target.closest("#bgo")){const stamp=Date.now();
-  BULK=pending.bills.map((rows,i)=>({id:stamp+"-"+i,rows})).concat(BULK);shown=50;
+  BULK=pending.bills.map((rows,i)=>({id:stamp+"-"+i,v:pending.v,rows})).concat(BULK);shown=50;
   if(!bsave())alert("Browser storage is full, so these bills will not be kept after reload.");
   pending=null;bmsg();blist()}});
 const rcOf=id=>BULK.find(b=>b.id===id);
 function printBills(list){const bp=$("#bulkprint");bp.innerHTML="";
- list.forEach(b=>{const d=document.createElement("div");d.className="rcpt";fillReceipt(d,b.rows);bp.appendChild(d)});
+ list.forEach(b=>{const d=document.createElement("div");d.className="rcpt";fillReceipt(d,b.rows,stOf(b));bp.appendChild(d)});
  document.body.classList.add("pb");
  const done=()=>{document.body.classList.remove("pb");bp.innerHTML="";removeEventListener("afterprint",done)};
  addEventListener("afterprint",done);window.print()}
 // image download: draws the receipt onto a canvas from the laid-out DOM, so it matches the preview
-async function billCanvas(rows,scale){
+async function billCanvas(rows,scale,st){
  scale=scale||3;
  const host=document.createElement("div");host.style.cssText="position:fixed;left:-99999px;top:0;pointer-events:none";
  const d=document.createElement("div");d.className="rcpt";host.appendChild(d);document.body.appendChild(host);
  try{
-  fillReceipt(d,rows);
+  fillReceipt(d,rows,st);
   try{await Promise.all([document.fonts.load('14px "Pump Courier"'),document.fonts.load('bold 14px "Pump Courier"'),document.fonts.load('14px "Pump Mono"'),document.fonts.load('bold 14px "Pump Mono"')]);await document.fonts.ready}catch(e){}
   const imgs=[...d.querySelectorAll("img")];
   await Promise.all(imgs.map(i=>i.decode?i.decode().catch(()=>{}):0));
@@ -545,9 +556,9 @@ async function billCanvas(rows,scale){
 const pngBlob=cv=>new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(new Error("PNG failed")),"image/png"));
 const fileSafe=t=>(String(t||"").replace(/[^\w.\-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60))||"bill";
 function saveBlob(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
-async function imageBtn(btn,rows){
+async function imageBtn(btn,rows,st){
  if(btn.disabled)return;btn.disabled=true;
- try{const cv=await billCanvas(rows);saveBlob(await pngBlob(cv),fileSafe(labelOf(rows)[0])+".png")}
+ try{const cv=await billCanvas(rows,3,st);saveBlob(await pngBlob(cv),fileSafe(labelOf(rows)[0])+".png")}
  catch(e){alert("Could not make the image: "+(e&&e.message||e))}
  finally{btn.disabled=false}}
 // store-only ZIP (PNG is already compressed)
@@ -573,14 +584,14 @@ async function zipImages(list,btn){
  try{const files=[],used=new Map();
   for(let i=0;i<list.length;i++){
    lab.textContent=`${i+1} / ${list.length}`;
-   const cv=await billCanvas(list[i].rows),data=new Uint8Array(await(await pngBlob(cv)).arrayBuffer());
+   const cv=await billCanvas(list[i].rows,3,stOf(list[i])),data=new Uint8Array(await(await pngBlob(cv)).arrayBuffer());
    let base=fileSafe(labelOf(list[i].rows)[0]),k=(used.get(base)||0)+1;used.set(base,k);
    files.push({name:(k>1?base+"_"+k:base)+".png",data})}
   saveBlob(makeZip(files),"pump-bills-images.zip")}
  catch(e){alert("Could not make the images: "+(e&&e.message||e))}
  finally{lab.textContent=old;btn.disabled=false}}
 let viewing=null;
-function openView(b){viewing=b;const[t]=labelOf(b.rows);$("#ptitle").textContent=t;fillReceipt($("#prc"),b.rows);$("#pm").hidden=false}
+function openView(b){viewing=b;const[t]=labelOf(b.rows);$("#ptitle").textContent=t;fillReceipt($("#prc"),b.rows,stOf(b));$("#pm").hidden=false}
 $("#blist").addEventListener("click",e=>{
  if(e.target.closest("#pall"))return printBills(BULK);
  if(e.target.closest("#iall"))return zipImages(BULK,e.target.closest("#iall"));
@@ -590,16 +601,16 @@ $("#blist").addEventListener("click",e=>{
  const b=rcOf(btn.closest(".bi").dataset.id);if(!b)return;
  if(btn.dataset.b==="view")openView(b);
  else if(btn.dataset.b==="print")printBills([b]);
- else if(btn.dataset.b==="img")imageBtn(btn,b.rows);
+ else if(btn.dataset.b==="img")imageBtn(btn,b.rows,stOf(b));
  else{BULK=BULK.filter(x=>x!==b);bsave();blist()}});
 $("#px").onclick=()=>$("#pm").hidden=true;
 $("#pm").addEventListener("click",e=>{if(e.target===$("#pm"))$("#pm").hidden=true});
 addEventListener("keydown",e=>{if(e.key==="Escape")$("#pm").hidden=true});
 $("#pprint").onclick=()=>{if(viewing)printBills([viewing])};
-$("#pimg").onclick=e=>{if(viewing)imageBtn(e.currentTarget,viewing.rows)};
+$("#pimg").onclick=e=>{if(viewing)imageBtn(e.currentTarget,viewing.rows,stOf(viewing))};
 $("#dlimg").onclick=e=>imageBtn(e.currentTarget,S.rows);
 blist();
-setPv(false);loadSettings();renderRows();calc();renderReceipt();
+setPv(false);loadSettings();renderRows();calc();renderReceipt();paintVar();
 </script>
 <script>
 (function(){var b=document.getElementById("themebtn"),r=document.documentElement,u=b.querySelector("use");
