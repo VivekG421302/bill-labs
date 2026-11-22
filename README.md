@@ -51,7 +51,11 @@ On the Petrol bill page, the **Bulk create from CSV** card makes many bills from
 
 Rules: a column whose header matches a Key (ignoring case, spaces and dots, so `Vehi.No` = `vehi no`) fills that row's value. Empty cells keep the template value. `Amount` (with `Rate` from the column, or the Quick fill rate) works out Preset, Rate, Sale and Volume like the Quick fill button; any explicit Preset/Sale/Volume column overrides that. Rows with nothing matching are skipped. Comma or semicolon separated files both work.
 
-Created bills are saved in the browser and listed with **Preview**, **Print** and **Delete**. **Print all** prints every bill in one job, one receipt per page, so the printer cuts between them. Layout changes (paper width, font, logo) apply to all listed bills.
+Created bills are saved in the browser and listed with **Preview**, **Print**, **Download image** and **Delete**. **Print all** prints every bill in one job, one receipt per page, so the printer cuts between them. Layout changes (paper width, font, logo) apply to all listed bills.
+
+### Download as image
+Every bill can be saved as a PNG: the picture button in the top bar (current bill), the **Image** button in the preview window, the picture button on each created bill, and **Images (ZIP)** to get all created bills in one ZIP (files named after the Bill No, repeats get `_2`, `_3`).
+The image is drawn from the same layout as the preview and print (same paper width, font and logo) at 3x resolution, so it stays sharp. No extra library is used, it works offline.
 
 ### Storage
 The logo settings and the created-bills list are kept in the browser's `localStorage` (data only; files are generated on demand).
