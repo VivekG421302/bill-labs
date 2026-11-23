@@ -5,12 +5,9 @@ import Home from './pages/Home.jsx'
 // The cab bill tool (PDF/Word engines, fonts) loads only when it is opened.
 const CabBill = lazy(() => import('./pages/CabBill.jsx'))
 
-// The petrol bill tool is a standalone page kept exactly as it was
-// (public/petrol-bill). It lives on its own route, outside the React router.
-export const PETROL_URL = `${import.meta.env.BASE_URL}petrol-bill/`
-
-// The Uber bill tool is also a standalone page (public/uber-bill), linked the same way.
-export const UBER_URL = `${import.meta.env.BASE_URL}uber-bill/`
+// The petrol and Uber bill tools are standalone pages (public/petrol-bill, public/uber-bill), outside the React router.
+import { PETROL_URL, UBER_URL } from './links.js'
+export { PETROL_URL, UBER_URL }
 
 const Sun = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

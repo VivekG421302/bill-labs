@@ -1,4 +1,4 @@
-const V="pump-bill-v11",FILES=["./","./index.html","./thermal-printer.js","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./fonts/cursor-regular.woff2","./fonts/cursor-bold.woff2","./fonts/mono-regular.woff2","./fonts/mono-bold.woff2"];
+const V="pump-bill-v12",FILES=["./","./index.html","./thermal-printer.js","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./fonts/cursor-regular.woff2","./fonts/cursor-bold.woff2","./fonts/mono-regular.woff2","./fonts/mono-bold.woff2"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(V).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 // network-first: always the latest page when online, cached copy when offline

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-export default function Modal({ title, onClose, children, actions }) {
+export default function Modal({ title, onClose, children, actions, nav }) {
   const ref = useRef(null)
   useEffect(() => {
     const d = ref.current
@@ -13,6 +13,7 @@ export default function Modal({ title, onClose, children, actions }) {
         <h2>{title}</h2>
         <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
       </div>
+      {nav && <div className="modal-nav">{nav}</div>}
       <div className="modal-body">{children}</div>
       {actions && <div className="modal-actions">{actions}</div>}
     </dialog>

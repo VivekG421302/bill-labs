@@ -19,6 +19,12 @@ function useWide(q = '(min-width: 1000px)') {
   return on
 }
 
+const Chev = ({ dir }) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={dir === 'l' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'} />
+  </svg>
+)
+
 export default function CabBill() {
   const [stored, setLogo, logoErr] = useStored('billlabs.cab.logo', DEFAULT_LOGO)
   const logo = useMemo(() => ({ ...DEFAULT_LOGO, ...stored }), [stored])
@@ -65,6 +71,20 @@ export default function CabBill() {
     setBill(emptyBill()); setEditingId(null); setMsg(''); setTab('bulk')
   }
   const cancelEdit = () => { setBill(emptyBill()); setEditingId(null); setMsg('') }
+  // arrows in the bill preview: step through the bills created from a CSV
+  const previewIdx = preview && preview.id ? records.findIndex((r) => r.id === preview.id) : -1
+  const stepPreview = (d) => { const n = records[previewIdx + d]; if (n) setPreview(n) }
+  useEffect(() => {
+    if (previewIdx < 0) return
+    const onKey = (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return
+      const n = records[previewIdx + (e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0)]
+      if (n && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { e.preventDefault(); setPreview(n) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [previewIdx, records])
+
   const openPreview = () => {
     const m = missing()
     if (m.length) return setMsg(`Please fill: ${m.join(', ')}.`)
@@ -118,6 +138,13 @@ export default function CabBill() {
         <Modal
           title={preview.fileBase}
           onClose={() => setPreview(null)}
+          nav={previewIdx >= 0 && records.length > 1 ? (
+            <>
+              <button type="button" className="btn btn-sm nav-btn" disabled={previewIdx <= 0} onClick={() => stepPreview(-1)} aria-label="Previous bill" title="Previous bill (left arrow)"><Chev dir="l" /></button>
+              <span className="muted small" aria-live="polite">{previewIdx + 1} / {records.length}</span>
+              <button type="button" className="btn btn-sm nav-btn" disabled={previewIdx >= records.length - 1} onClick={() => stepPreview(1)} aria-label="Next bill" title="Next bill (right arrow)"><Chev dir="r" /></button>
+            </>
+          ) : null}
           actions={<>
             <button type="button" className="btn" onClick={() => (preview.id ? editRecord(preview) : setPreview(null))}>Edit</button>
             <button type="button" className="btn btn-primary" onClick={() => downloadOne(preview.bill, preview.fileBase, 'pdf', logo)}>Download PDF</button>

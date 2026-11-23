@@ -44,6 +44,16 @@ Every page links to every other page: the Bill Labs title goes Home, and the top
 
 The Uber page keeps its saved settings and logo under `billlabs.uber.*`; its "Reset everything" only clears those keys and never touches the theme, petrol bills or cab data.
 
+## Thermal printing (Petrol bill)
+
+- **Pair once.** The first time, press Connect and choose the printer. After that the page reconnects by itself (on open, when the tab comes back, when the printer is switched on, and if the link drops). It only asks again if you press "Forget printer". This needs a browser that supports `navigator.bluetooth.getDevices()`; where it does not, Chrome asks once per page load and then stays connected.
+- **Progress bar.** Every thermal print opens a progress window: overall percentage, the current bill's own bar, "n of N printed", time left, and a dot per bill (waiting / printing / done / failed).
+- **Bulk printing.** "Thermal all" prints the created bills one after another. The pause between bills is a setting. Pause, Resume and Stop are available; if the printer is switched off or goes out of range the queue waits, and after you switch it on and press Resume the interrupted bill is printed again from the start. "Print remaining" finishes whatever was left. The screen stays awake while printing where the browser allows it.
+
+## Many bills from a CSV: arrows
+
+When a CSV makes many bills you can step through them one by one with the arrows (or the left / right arrow keys): the Petrol preview and print-confirm windows (swipe works on phones), the Cab bill preview, and the Uber page, which shows one receipt at a time with a jump menu. Printing on the Uber page still prints every receipt.
+
 ## Petrol bill: bulk create from CSV
 
 On the Petrol bill page, the **Bulk create from CSV** card makes many bills from the current bill rows.
