@@ -4,6 +4,7 @@ React + Vite app with two tools:
 
 - **Cab bill** (`/#/cab-bill`): fill one bill in a form, or create many from a CSV. Download each as PDF or Word, preview it, and manage the created list.
 - **Petrol bill** (`/petrol-bill/`): the existing petrol pump bill printer, kept unchanged in `public/petrol-bill`.
+- **Uber bill** (`/uber-bill/`): ride receipt generator (route map, driver, fare, CSV bulk, print / save as PDF), a standalone page in `public/uber-bill`.
 
 ## Run
 
@@ -39,7 +40,9 @@ Use the in-app **Download template CSV**. Headers:
 
 ### Theme and navigation
 Both tools use one shared theme (dark by default, toggle in the top bar, remembered in `localStorage` key `billlabs.theme`).
-The Petrol bill page has a top bar linking back to Bill Labs and the Cab bill.
+Every page links to every other page: the Bill Labs title goes Home, and the top bar has links to the other two tools. The Petrol and Uber pages are standalone (outside the React router) and use relative links (`../`, `../#/cab-bill`, `../petrol-bill/`, `../uber-bill/`), so they work from any sub-path. All pages share one dark/light theme (`billlabs.theme`).
+
+The Uber page keeps its saved settings and logo under `billlabs.uber.*`; its "Reset everything" only clears those keys and never touches the theme, petrol bills or cab data.
 
 ## Petrol bill: bulk create from CSV
 

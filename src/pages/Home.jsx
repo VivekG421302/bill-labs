@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { PETROL_URL } from '../App.jsx'
+import { PETROL_URL, UBER_URL } from '../App.jsx'
 
 export default function Home() {
   return (
@@ -15,6 +15,12 @@ export default function Home() {
         <a href={PETROL_URL} className="home-card">
           <span className="home-card-title">Petrol bill</span>
           <span className="home-card-body">The existing petrol pump bill printer.</span>
+        </a>
+        <a href={UBER_URL} className="home-card">
+          <span className="home-card-title">Uber bill</span>
+          <span className="home-card-body">
+            Ride receipts with route map, driver and fare details. Make one or many from a CSV, then print or save as PDF.
+          </span>
         </a>
       </div>
     </section>
