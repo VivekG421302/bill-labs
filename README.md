@@ -61,7 +61,7 @@ The image is drawn from the same layout as the preview and print (same paper wid
 The Petrol bill page can print straight to a Bluetooth thermal printer using Web Bluetooth (`public/petrol-bill/thermal-printer.js`, no dependencies).
 
 - Needs **Chrome or Edge** (Android or desktop) on **HTTPS** or localhost. iPhone/Safari does not support Web Bluetooth.
-- Pair once with **Connect printer** in the *Thermal printer* card; later visits reconnect silently when the browser allows it. If you press a Bluetooth button while not connected, the device picker opens first.
+- Tap the **Printer** status pill in the top bar (red = not connected, amber = connecting, green = connected) to open the connection popup: Connect, Disconnect and Test print. The *Thermal printer* card has the same Connect button; later visits reconnect silently when the browser allows it. If you press a Bluetooth button while not connected, the device picker opens first.
 - Bluetooth buttons: top bar (current bill), preview window (**Thermal**), every created bill, and **Thermal all** (bills are sent one after another).
 - The bill is drawn from the same layout as the preview/PNG, scaled to the printer's 384-dot width, and thresholded to black/white. **Darkness** and **Text sharpness** sliders are saved in `localStorage` key `billlabs.thermal`.
 - Printer name prefix / BLE UUIDs are in `DEFAULTS` at the top of `thermal-printer.js`.
