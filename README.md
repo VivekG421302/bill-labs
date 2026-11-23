@@ -57,6 +57,15 @@ Created bills are saved in the browser and listed with **Preview**, **Print**, *
 Every bill can be saved as a PNG: the picture button in the top bar (current bill), the **Image** button in the preview window, the picture button on each created bill, and **Images (ZIP)** to get all created bills in one ZIP (files named after the Bill No, repeats get `_2`, `_3`).
 The image is drawn from the same layout as the preview and print (same paper width, font and logo) at 3x resolution, so it stays sharp. No extra library is used, it works offline.
 
+### Thermal printer (Bluetooth, SC03 / Meow protocol)
+The Petrol bill page can print straight to a Bluetooth thermal printer using Web Bluetooth (`public/petrol-bill/thermal-printer.js`, no dependencies).
+
+- Needs **Chrome or Edge** (Android or desktop) on **HTTPS** or localhost. iPhone/Safari does not support Web Bluetooth.
+- Pair once with **Connect printer** in the *Thermal printer* card; later visits reconnect silently when the browser allows it. If you press a Bluetooth button while not connected, the device picker opens first.
+- Bluetooth buttons: top bar (current bill), preview window (**Thermal**), every created bill, and **Thermal all** (bills are sent one after another).
+- The bill is drawn from the same layout as the preview/PNG, scaled to the printer's 384-dot width, and thresholded to black/white. **Darkness** and **Text sharpness** sliders are saved in `localStorage` key `billlabs.thermal`.
+- Printer name prefix / BLE UUIDs are in `DEFAULTS` at the top of `thermal-printer.js`.
+
 ### Storage
 The logo settings and the created-bills list are kept in the browser's `localStorage` (data only; files are generated on demand).
 
