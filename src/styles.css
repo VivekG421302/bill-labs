@@ -51,16 +51,6 @@ h1 { font-size: 1.5rem; margin: 0 0 1rem; line-height: 1.25; }
 a { color: inherit; }
 
 .shell { min-height: 100dvh; display: flex; flex-direction: column; }
-.topbar {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
-  background: var(--topbar); color: #fff; border-bottom: 1px solid var(--line);
-}
-.brand { font-weight: 700; font-size: 1.05rem; text-decoration: none; white-space: nowrap; }
-.topnav { display: flex; gap: 0.25rem; }
-.topnav a { white-space: nowrap; text-decoration: none; padding: 0.45rem 0.8rem; border-radius: 8px; color: #cfd6e2; font-size: 0.92rem; }
-.topnav a:hover { background: rgba(255,255,255,.08); color: #fff; }
-.topnav a.active { background: var(--amber); color: var(--amber-ink); font-weight: 700; }
 .main { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 
 /* ---------- Home ---------- */
@@ -199,27 +189,11 @@ code { background: var(--code); padding: 0.05rem 0.35rem; border-radius: 4px; fo
   .record-actions { width: 100%; }
   .field input, .field textarea { font-size: 16px; } /* stops iOS zooming into inputs */
 }
-@media (max-width: 480px) {
-  .topbar { gap: 0.4rem; }
-  .brand { font-size: 0.95rem; }
-  .topnav { gap: 0; }
-  .topnav a { padding: 0.4rem 0.45rem; font-size: 0.82rem; }
-  .theme-btn { margin-left: 0.2rem; width: 34px; height: 34px; }
-}
-@media (max-width: 350px) {
-  .topbar { padding-left: 0.6rem; padding-right: 0.6rem; }
-  .brand { font-size: 0.88rem; }
-  .topnav a { padding: 0.4rem 0.3rem; font-size: 0.76rem; }
-  .theme-btn { width: 30px; height: 30px; margin-left: 0.1rem; }
-}
 @media (prefers-reduced-motion: no-preference) { .btn { transition: background-color .12s; } }
 
 .nowrap { flex-wrap: nowrap; }
 .nowrap input { flex: 1 1 auto; min-width: 0; }
 .banner { background: var(--banner); border: 1px solid var(--amber); border-radius: 8px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.92rem; overflow-wrap: anywhere; }
-.topnav { align-items: center; }
-.theme-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; margin-left: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,.3); background: transparent; color: #cfd6e2; cursor: pointer; }
-.theme-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
 
 /* Desktop live preview: scale the whole A4 page to fit the window height. */
 .sticky .pdfview-canvas { width: auto; max-width: 100%; max-height: calc(100dvh - 8.5rem); margin: 0 auto; }

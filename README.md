@@ -38,15 +38,24 @@ Use the in-app **Download template CSV**. Headers:
 - In the created list, **Preview → Edit** opens the bill in the form with its data filled in; **Save changes to list** updates it.
 - The box on the bill shows `SelectedPrice`; if empty it shows `Price`.
 
-### Theme and navigation
-Both tools use one shared theme (dark by default, toggle in the top bar, remembered in `localStorage` key `billlabs.theme`).
-Every page links to every other page: the Bill Labs title goes Home, and the top bar has links to the other two tools. The Petrol and Uber pages are standalone (outside the React router) and use relative links (`../`, `../#/cab-bill`, `../petrol-bill/`, `../uber-bill/`), so they work from any sub-path. All pages share one dark/light theme (`billlabs.theme`).
+### One navbar on every page (`public/shell/shell.js`)
+Home, Cab, Petrol and Uber all load the same shell script, so they share one compact bar:
+
+`[ < Home | Page title ]  ......  [page button] [Printers] [Download] [Menu]`
+
+- **Back** goes to the home page (Home shows the Bill Labs brand instead).
+- **Menu** opens a collapsible sidebar on the right: the other pages (current one highlighted), page extras (e.g. "How editing works" on Petrol), the **Dark theme** switch and **Install app**. Close it with the X, a click outside, or Esc.
+- **Printers** opens one window: thermal printer connection (Connect, Disconnect, Forget, **Test print** which prints a small centred ASCII cat to save paper), Darkness / Text sharpness / Pause between bills, and "Print this bill" (thermal or system printer) where the page supports it. A **green dot** on the button means the thermal printer is connected (amber while connecting).
+- **Download** opens a window that asks which format you want. Each page lists what it can make: Petrol PNG, JPEG, PDF, ZIPs of all created bills and the CSV template; Cab PDF, Word and ZIPs; Uber PDF (this receipt only or all) and the CSV template.
+- **Install app** uses the browser's install prompt (`manifest.webmanifest` + `sw.js` at the site root; the Petrol page keeps its own manifest and service worker). On iPhone it explains Share, then Add to Home Screen.
+
+A page tells the shell what it offers with `BillLabs.page({ title, menu, downloads, print })` (React pages use `usePage()` from `src/shell.js`) and can put its own button in the bar with `BillLabs.slot()`. The theme is one switch for the whole site (`billlabs.theme`). The Petrol and Uber pages are standalone (outside the React router) and use relative links, so everything works from any sub-path.
 
 The Uber page keeps its saved settings and logo under `billlabs.uber.*`; its "Reset everything" only clears those keys and never touches the theme, petrol bills or cab data.
 
 ## Thermal printing (Petrol bill)
 
-- **Pair once.** The first time, press Connect and choose the printer. After that the page reconnects by itself (on open, when the tab comes back, when the printer is switched on, and if the link drops). It only asks again if you press "Forget printer". This needs a browser that supports `navigator.bluetooth.getDevices()`; where it does not, Chrome asks once per page load and then stays connected.
+- **Pair once.** The first time, open **Printers** and press Connect, then choose the printer. After that the page reconnects by itself (on open, when the tab comes back, when the printer is switched on, and if the link drops). It only asks again if you press "Forget printer". This needs a browser that supports `navigator.bluetooth.getDevices()`; where it does not, Chrome asks once per page load and then stays connected.
 - **Progress bar.** Every thermal print opens a progress window: overall percentage, the current bill's own bar, "n of N printed", time left, and a dot per bill (waiting / printing / done / failed).
 - **Bulk printing.** "Thermal all" prints the created bills one after another. The pause between bills is a setting. Pause, Resume and Stop are available; if the printer is switched off or goes out of range the queue waits, and after you switch it on and press Resume the interrupted bill is printed again from the start. "Print remaining" finishes whatever was left. The screen stays awake while printing where the browser allows it.
 
@@ -67,16 +76,16 @@ Rules: a column whose header matches a Key (ignoring case, spaces and dots, so `
 Created bills are saved in the browser and listed with **Preview**, **Print**, **Download image** and **Delete**. **Print all** prints every bill in one job, one receipt per page, so the printer cuts between them. Layout changes (paper width, font, logo) apply to all listed bills.
 
 ### Download as image
-Every bill can be saved as a PNG: the picture button in the top bar (current bill), the **Image** button in the preview window, the picture button on each created bill, and **Images (ZIP)** to get all created bills in one ZIP (files named after the Bill No, repeats get `_2`, `_3`).
+Every bill can be saved as a PNG or JPEG: **Download** in the navbar (current bill, or all created bills in one ZIP), the **Image** button in the preview window, the picture button on each created bill, and **Images (ZIP)** in the created-bills list (files named after the Bill No, repeats get `_2`, `_3`).
 The image is drawn from the same layout as the preview and print (same paper width, font and logo) at 3x resolution, so it stays sharp. No extra library is used, it works offline.
 
 ### Thermal printer (Bluetooth, SC03 / Meow protocol)
-The Petrol bill page can print straight to a Bluetooth thermal printer using Web Bluetooth (`public/petrol-bill/thermal-printer.js`, no dependencies).
+The printer driver is `public/shell/thermal-printer.js` (Web Bluetooth, no dependencies) and is shared by every page through the navbar.
 
 - Needs **Chrome or Edge** (Android or desktop) on **HTTPS** or localhost. iPhone/Safari does not support Web Bluetooth.
-- Tap the **Printer** status pill in the top bar (red = not connected, amber = connecting, green = connected) to open the connection popup: Connect, Disconnect and Test print. The *Thermal printer* card has the same Connect button; later visits reconnect silently when the browser allows it. If you press a Bluetooth button while not connected, the device picker opens first.
-- Bluetooth buttons: top bar (current bill), preview window (**Thermal**), every created bill, and **Thermal all** (bills are sent one after another).
-- The bill is drawn from the same layout as the preview/PNG, scaled to the printer's 384-dot width, and thresholded to black/white. **Darkness** and **Text sharpness** sliders are saved in `localStorage` key `billlabs.thermal`.
+- Everything about the printer is in the navbar's **Printers** window; the green dot on its button shows the connection. If you start a print while not connected, the connection is made first (the device picker only opens if no printer is remembered).
+- On the Petrol page, print buttons are in **Printers > Print this bill**, in the preview window (**Thermal**), on every created bill, and **Thermal all** (bills are sent one after another).
+- The bill is drawn from the same layout as the preview/PNG, scaled to the printer's 384-dot width, and thresholded to black/white. **Darkness**, **Text sharpness** and **Pause between bills** are saved in `localStorage` key `billlabs.thermal`.
 - Printer name prefix / BLE UUIDs are in `DEFAULTS` at the top of `thermal-printer.js`.
 
 ### Storage

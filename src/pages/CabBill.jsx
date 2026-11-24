@@ -6,7 +6,8 @@ import Modal from '../components/Modal.jsx'
 import PdfView from '../components/PdfView.jsx'
 import { DEFAULT_LOGO } from '../cab/assets.js'
 import { FIELDS, emptyBill, resolveFileBase, toInputTime } from '../cab/fields.js'
-import { downloadOne } from '../cab/exporter.js'
+import { downloadOne, downloadZip } from '../cab/exporter.js'
+import { friendly, usePage } from '../shell.js'
 import { useStored } from '../cab/store.js'
 
 function useWide(q = '(min-width: 1000px)') {
@@ -71,6 +72,30 @@ export default function CabBill() {
     setBill(emptyBill()); setEditingId(null); setMsg(''); setTab('bulk')
   }
   const cancelEdit = () => { setBill(emptyBill()); setEditingId(null); setMsg('') }
+  // What the shared navbar's Download window offers on this page.
+  const dlBill = async (kind) => {
+    const m = missing()
+    if (m.length) { setTab('single'); throw friendly(`Please fill: ${m.join(', ')}.`) }
+    await downloadOne(bill, fileBase, kind, logo)
+  }
+  usePage(() => {
+    const items = []
+    if (tab === 'single') {
+      items.push(
+        { group: 'This bill', label: 'PDF', desc: 'A4 document, ready to print or send', icon: 'file', run: () => dlBill('pdf') },
+        { group: 'This bill', label: 'Word', desc: 'Editable .docx file', icon: 'file', run: () => dlBill('docx') },
+      )
+    }
+    if (records.length) {
+      const g = `All ${records.length} created bills`
+      items.push(
+        { group: g, label: 'PDFs (ZIP)', desc: 'One PDF per bill in one ZIP file', icon: 'zip', run: () => downloadZip(records, 'pdf', logo, `cab-bills-pdf-${Date.now()}.zip`) },
+        { group: g, label: 'Word files (ZIP)', desc: 'One .docx per bill in one ZIP file', icon: 'zip', run: () => downloadZip(records, 'docx', logo, `cab-bills-docx-${Date.now()}.zip`) },
+      )
+    }
+    return { downloads: items }
+  })
+
   // arrows in the bill preview: step through the bills created from a CSV
   const previewIdx = preview && preview.id ? records.findIndex((r) => r.id === preview.id) : -1
   const stepPreview = (d) => { const n = records[previewIdx + d]; if (n) setPreview(n) }
