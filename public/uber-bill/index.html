@@ -346,9 +346,16 @@ async function geo(q){
 
 /* ---- themed map (MapLibre + OpenFreeMap vector tiles, snapshotted to an image) ---- */
 let MLp=null;
-function loadML(){if(window.maplibregl)return Promise.resolve();return MLp||(MLp=new Promise((res,rej)=>{
-  const l=document.createElement("link");l.rel="stylesheet";l.href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css";document.head.appendChild(l);
-  const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js";s.onload=res;s.onerror=()=>{MLp=null;rej(new Error("Map library failed to load"))};document.head.appendChild(s)}))}
+function loadML(){if(window.maplibregl)return Promise.resolve();return MLp||(MLp=(async()=>{
+  // own copy first (works offline, no CDN to be blocked), CDN only as a backup
+  for(const base of["../vendor/maplibre-gl/","https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/"]){
+    try{
+      await new Promise((res,rej)=>{
+        const l=document.createElement("link");l.rel="stylesheet";l.href=base+"maplibre-gl.css";document.head.appendChild(l);
+        const s=document.createElement("script");s.src=base+"maplibre-gl.js";s.onload=res;s.onerror=()=>{s.remove();l.remove();rej(new Error("load failed"))};document.head.appendChild(s)});
+      if(window.maplibregl)return
+    }catch(e){}}
+  MLp=null;throw new Error("Map library failed to load")})())}
 const rc=a=>["in",["get","class"],["literal",a]];
 const zw=(a)=>["interpolate",["exponential",1.4],["zoom"],...a];
 const MSTYLE={version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
@@ -437,7 +444,7 @@ async function snap(pts){
     map=new maplibregl.Map({container:el,style:MSTYLE,interactive:false,attributionControl:false,preserveDrawingBuffer:true,pixelRatio:2,fadeDuration:0,
       center:[(Math.min(...lo)+Math.max(...lo))/2,(Math.min(...la)+Math.max(...la))/2],zoom:10,bearing:pickBearing(pts)});
     fitRotated(map,pts);
-    const wait=ev=>new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error("Map timed out")),30000);map.once(ev,()=>{clearTimeout(t);res()})});
+    const wait=ev=>new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error("Map timed out")),60000);map.once(ev,()=>{clearTimeout(t);res()})});
     map.on("styleimagemissing",e=>{if(e.id==="shield"&&!map.hasImage("shield"))map.addImage("shield",shieldImg(),{pixelRatio:2,stretchX:[[12,28]],stretchY:[[10,18]],content:[12,10,28,18]})});
     await wait("load");
     map.addImage("s",mk(0),{pixelRatio:2});map.addImage("e",mk(1),{pixelRatio:2});
