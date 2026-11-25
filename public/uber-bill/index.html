@@ -444,7 +444,7 @@ async function snap(pts){
     map=new maplibregl.Map({container:el,style:MSTYLE,interactive:false,attributionControl:false,preserveDrawingBuffer:true,pixelRatio:2,fadeDuration:0,
       center:[(Math.min(...lo)+Math.max(...lo))/2,(Math.min(...la)+Math.max(...la))/2],zoom:10,bearing:pickBearing(pts)});
     fitRotated(map,pts);
-    const wait=ev=>new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error("Map timed out")),60000);map.once(ev,()=>{clearTimeout(t);res()})});
+    const wait=ev=>new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error("Map timed out")),30000);map.once(ev,()=>{clearTimeout(t);res()})});
     map.on("styleimagemissing",e=>{if(e.id==="shield"&&!map.hasImage("shield"))map.addImage("shield",shieldImg(),{pixelRatio:2,stretchX:[[12,28]],stretchY:[[10,18]],content:[12,10,28,18]})});
     await wait("load");
     map.addImage("s",mk(0),{pixelRatio:2});map.addImage("e",mk(1),{pixelRatio:2});
@@ -469,8 +469,9 @@ async function fetchRoute(pa,da){
     const j=await r.json();
     const pts=j.routes&&j.routes[0]?j.routes[0].geometry.coordinates:[a,b];
     const rt={pts};
+    ROUTES[key]=rt;render(true); // show the plain map straight away, the styled one replaces it when ready
     $("mapstat").textContent="Drawing map\u2026";
-    for(let t=0;t<2&&!rt.img;t++){try{rt.img=await snap(pts)}catch(e){console.warn("Themed map failed:",e);if(t)$("mapstat").textContent="Themed map failed ("+String(e&&e.message||e).slice(0,80)+"), using plain tiles"}}
+    try{rt.img=await Promise.race([snap(pts),new Promise((_,j)=>setTimeout(()=>j(new Error("Map timed out")),25000))])}catch(e){console.warn("Themed map failed:",e);$("mapstat").textContent="Themed map failed ("+String(e&&e.message||e).slice(0,80)+"), using plain map"}
     ROUTES[key]=rt;
   }catch(e){ROUTES[key]={fail:true};$("mapstat").textContent=String(e.message||e)}
 }
