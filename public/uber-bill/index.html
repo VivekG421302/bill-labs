@@ -189,7 +189,7 @@ details.sec[open]{padding-bottom:10px}
   </details>
 
   <details class="sec"><summary>7. Fixed text &amp; labels <em>set once</em></summary>
-    <label>Subtitle text</label><input id="subtitle">
+    <label>Subtitle text ("{period}" = morning / afternoon / evening / night, from the receipt time)</label><input id="subtitle">
     <label>Greeting ("{name}" = rider name)</label><input id="greeting">
     <div class="row"><div><label>Fee line label</label><input id="feeLabel"></div><div><label>Fare line label</label><input id="fareLabel"></div></div>
     <div class="row"><div><label>Trip history text</label><input id="histQ"></div><div><label>Link text</label><input id="histLink"></div></div>
@@ -218,7 +218,7 @@ details.sec[open]{padding-bottom:10px}
 <script>
 const $=id=>document.getElementById(id);
 const COLS=["rider","date","time","fare","fee","pay","paytime","vehicle","plate","km","min","ptime","dtime","paddr","daddr","ploc","dloc","driver","rating"];
-const FIXED={brandText:"",subtitle:"We hope you enjoyed your ride this afternoon.",greeting:"Thanks for riding, {name}",
+const FIXED={brandText:"",subtitle:"We hope you enjoyed your ride this {period}.",greeting:"Thanks for riding, {name}",
  feeLabel:"Booking fee",fareLabel:"Suggested fare",notice:"Write your own receipt / tax note here (for example whether GST is included).",
  histQ:"Want to review your trip history?",histLink:"My trips",histUrl:"https://riders.uber.com/trips",feeUrl:"https://help.uber.com/riders/article/i-was-charged-a-booking-fee?nodeId=2949c48a-dc4c-4c2b-a389-2e2f5be5b0c6",footer:"",cur:"\u20B9"};
 const SAMPLE={rider:"Satish",date:"2026-08-10",time:"13:25",fare:"223.27",fee:"4.00",pay:"Cash",paytime:"14:11",vehicle:"Car model",plate:"MH05EX2857",
@@ -230,7 +230,7 @@ const LDEF_W=78,LDEF_H=23,LDEF_TOP=56;
 let logoAR=1,LC={w:0,h:0,x:0,y:0,lock:true,guide:true,bg:true};
 const LDEF=()=>{let w=LDEF_W,h=Math.round(w/logoAR);if(h>LDEF_H){h=LDEF_H;w=Math.round(h*logoAR)}return{w,h}};
 
-try{const s=JSON.parse(localStorage.getItem("billlabs.uber.fixed")||"null")||{};delete s.brand;Object.assign(FIXED,s);logoRaw0=localStorage.getItem("billlabs.uber.logoRaw")||localStorage.getItem("billlabs.uber.logo")||"";Object.assign(LC,JSON.parse(localStorage.getItem("billlabs.uber.logoCfg")||"{}"))}catch(e){}
+try{const s=JSON.parse(localStorage.getItem("billlabs.uber.fixed")||"null")||{};delete s.brand;Object.assign(FIXED,s);if(s.subtitle==="We hope you enjoyed your ride this afternoon.")FIXED.subtitle=FIXED0.subtitle;logoRaw0=localStorage.getItem("billlabs.uber.logoRaw")||localStorage.getItem("billlabs.uber.logo")||"";Object.assign(LC,JSON.parse(localStorage.getItem("billlabs.uber.logoCfg")||"{}"))}catch(e){}
 ["histUrl","feeUrl"].forEach(k=>{if(!FIXED[k])FIXED[k]=FIXED0[k]});
 Object.keys(FIXED).forEach(k=>$(k).value=FIXED[k]);
 COLS.forEach(k=>$(k).value=SAMPLE[k]);
@@ -239,6 +239,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const money=(n,c)=>c+Number(n||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 function t12(t){if(!t)return"";const[h,m]=t.split(":").map(Number);return((h+11)%12+1)+":"+String(m).padStart(2,"0")+" "+(h<12?"am":"pm")}
+function period(t){const h=parseInt(String(t||"").split(":")[0],10);if(isNaN(h))return"afternoon";return h<12?"morning":h<17?"afternoon":h<21?"evening":"night"}
 function dparts(d){const[y,m,dd]=(d||"").split("-").map(Number);return{y,m,d:dd}}
 function fixed(){const o={};Object.keys(FIXED).forEach(k=>o[k]=$(k).value);return o}
 function read(f){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f)})}
@@ -257,7 +258,7 @@ function receipt(d,f){
   <section class="sheet">
     <div class="r-top">${logo}<div class="r-dt">${esc(dateStr)}<br>${esc(t12(d.time))}</div></div>
     <div class="r-title">${greet}</div>
-    <p class="r-sub">${esc(f.subtitle)}</p>
+    <p class="r-sub">${esc((f.subtitle||"").replace("{period}",period(d.time)))}</p>
     <hr class="r-hr">
     <div class="r-total"><span>Total</span><span>${money(total,cur)}</span></div>
     <hr class="r-hr">
