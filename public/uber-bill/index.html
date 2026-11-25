@@ -304,11 +304,11 @@ function mapHTML(rt){
   let tiles="";const n=2**z;
   for(let tx=Math.floor(ox/256);tx<=Math.floor((ox+W)/256);tx++)for(let ty=Math.floor(oy/256);ty<=Math.floor((oy+H)/256);ty++){
     if(ty<0||ty>=n)continue;const X=((tx%n)+n)%n;
-    tiles+=`<img alt="" src="https://a.basemaps.cartocdn.com/light_nolabels/${z}/${X}/${ty}.png" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`}
+    tiles+=`<img alt="" crossorigin="anonymous" src="https://tile.openstreetmap.org/${z}/${X}/${ty}.png" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`}
   const P=pts.map(p=>[wx(p[0],z)-ox,wy(p[1],z)-oy]);
   const line=P.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
   const a=P[0],b=P[P.length-1];
-  return `<div class="mapbox"><div class="tiles">${tiles}</div><svg viewBox="0 0 ${W} ${H}"><polyline points="${line}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${a[0]}" cy="${a[1]}" r="9.5" fill="#000"/><circle cx="${a[0]}" cy="${a[1]}" r="2.25" fill="#fff"/><rect x="${b[0]-9.5}" y="${b[1]-9.5}" width="19" height="19" fill="#000"/><rect x="${b[0]-2.25}" y="${b[1]-2.25}" width="4.5" height="4.5" fill="#fff"/></svg><span class="attr">\u00A9 OpenStreetMap contributors \u00B7 CARTO</span></div>`}
+  return `<div class="mapbox"><div class="tiles">${tiles}</div><svg viewBox="0 0 ${W} ${H}"><polyline points="${line}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${a[0]}" cy="${a[1]}" r="9.5" fill="#000"/><circle cx="${a[0]}" cy="${a[1]}" r="2.25" fill="#fff"/><rect x="${b[0]-9.5}" y="${b[1]-9.5}" width="19" height="19" fill="#000"/><rect x="${b[0]-2.25}" y="${b[1]-2.25}" width="4.5" height="4.5" fill="#fff"/></svg><span class="attr">\u00A9 OpenStreetMap contributors</span></div>`}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const OA="23456789CFGHJMPQRVWX",PLUS=/^\s*([23456789CFGHJMPQRVWX]{4,8})\+([23456789CFGHJMPQRVWX]{2,3})(?:[\s,]+([\s\S]*))?$/i;
 function olcDecode(code){
@@ -463,7 +463,7 @@ async function fetchRoute(pa,da){
     const pts=j.routes&&j.routes[0]?j.routes[0].geometry.coordinates:[a,b];
     const rt={pts};
     $("mapstat").textContent="Drawing map\u2026";
-    try{rt.img=await snap(pts)}catch(e){console.warn("Themed map failed, using plain tiles:",e)}
+    for(let t=0;t<2&&!rt.img;t++){try{rt.img=await snap(pts)}catch(e){console.warn("Themed map failed:",e);if(t)$("mapstat").textContent="Themed map failed ("+String(e&&e.message||e).slice(0,80)+"), using plain tiles"}}
     ROUTES[key]=rt;
   }catch(e){ROUTES[key]={fail:true};$("mapstat").textContent=String(e.message||e)}
 }
@@ -612,6 +612,9 @@ function makeZip(files){
 const SHEET_W=952,SHEET_H=1232,PDF_SCALE=2;
 const cssAll=()=>{let o="";for(const ss of document.styleSheets){try{for(const r of ss.cssRules)o+=r.cssText+"\n"}catch(e){}}return o};
 const pdfName=s=>String(s||"").replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"");
+async function inlineImgs(root){
+  for(const im of root.querySelectorAll("img[src^=http]")){
+    try{const b=await(await fetch(im.src,{mode:"cors"})).blob();im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e){}}}
 async function sheetJpeg(sec,css){
   const x=new XMLSerializer().serializeToString(sec),st=css.replace(/&/g,"&amp;").replace(/</g,"&lt;");
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET_W}" height="${SHEET_H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="--ink:#000;--muted:#6b6b6b;--line:#e6e6e6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><style>${st}</style>${x}</div></foreignObject></svg>`;
@@ -632,7 +635,7 @@ async function zipPdfs(list){
   try{
     for(let i=0;i<list.length;i++){
       say(`Making PDF ${i+1} of ${list.length}\u2026`);
-      host.innerHTML=receipt(list[i],f);
+      host.innerHTML=receipt(list[i],f);await inlineImgs(host);
       const pages=[];for(const sec of host.querySelectorAll("section.sheet"))pages.push(await sheetJpeg(sec,css));
       let base=String(i+1).padStart(2,"0")+"_"+(pdfName(list[i].rider)||"receipt")+(list[i].date?"_"+list[i].date:"");
       while(used.has(base))base+="_";used.add(base);
