@@ -575,6 +575,72 @@ addEventListener("keydown",e=>{if(!rows||rows.length<2||/^(INPUT|TEXTAREA|SELECT
   if(e.key==="ArrowLeft"){e.preventDefault();goRcpt(CUR-1)}else if(e.key==="ArrowRight"){e.preventDefault();goRcpt(CUR+1)}});
 $("print").onclick=()=>{document.body.classList.remove("one");window.print()};   // always prints every receipt
 // ---- shared navbar: what this page offers ----
+/* ---- PDF + ZIP writers (no library): JPEG pages -> PDF, files -> store-only ZIP ---- */
+function pdfFromJpegs(pages){ // pages: [{data:Uint8Array, w, h (pixels), pw, ph (PDF points)}]
+ const enc=new TextEncoder(),chunks=[],offs=[],n=pages.length;let len=0;
+ const put=x=>{const u=typeof x==="string"?enc.encode(x):x;chunks.push(u);len+=u.length};
+ const obj=(id,fn)=>{offs[id]=len;put(id+" 0 obj\n");fn();put("\nendobj\n")};
+ put("%PDF-1.4\n");
+ obj(1,()=>put("<< /Type /Catalog /Pages 2 0 R >>"));
+ obj(2,()=>put("<< /Type /Pages /Kids ["+pages.map((_,i)=>(3+3*i)+" 0 R").join(" ")+"] /Count "+n+" >>"));
+ pages.forEach((j,i)=>{const p=3+3*i,c=p+1,im=p+2,cs="q "+j.pw+" 0 0 "+j.ph+" 0 0 cm /Im0 Do Q";
+  obj(p,()=>put("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+j.pw+" "+j.ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+c+" 0 R >>"));
+  obj(c,()=>put("<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream"));
+  obj(im,()=>{put("<< /Type /XObject /Subtype /Image /Width "+j.w+" /Height "+j.h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+j.data.length+" >>\nstream\n");put(j.data);put("\nendstream")})});
+ const xr=len,tot=3*n+3;let x="xref\n0 "+tot+"\n0000000000 65535 f \n";
+ for(let i=1;i<tot;i++)x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+ put(x+"trailer\n<< /Size "+tot+" /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF\n");
+ return new Blob(chunks,{type:"application/pdf"})}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
+function makeZip(files){
+ const enc=new TextEncoder(),now=new Date(),dt=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF,dd=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+ const parts=[],cen=[];let off=0;
+ files.forEach(f=>{const nm=enc.encode(f.name),crc=crc32(f.data),h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);
+  h.setUint32(14,crc,true);h.setUint32(18,f.data.length,true);h.setUint32(22,f.data.length,true);h.setUint16(26,nm.length,true);h.setUint16(28,0,true);
+  parts.push(h.buffer,nm,f.data);
+  const c=new DataView(new ArrayBuffer(46));
+  c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(10,0,true);c.setUint16(12,dt,true);c.setUint16(14,dd,true);
+  c.setUint32(16,crc,true);c.setUint32(20,f.data.length,true);c.setUint32(24,f.data.length,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+  cen.push(c.buffer,nm);off+=30+nm.length+f.data.length});
+ const cl=cen.reduce((a,b)=>a+b.byteLength,0),e=new DataView(new ArrayBuffer(22));
+ e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cl,true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cen,e.buffer],{type:"application/zip"})}
+
+/* ---- every receipt as a PDF (2 pages each, picture of the receipt), all in one ZIP ---- */
+const SHEET_W=952,SHEET_H=1232,PDF_SCALE=2;
+const cssAll=()=>{let o="";for(const ss of document.styleSheets){try{for(const r of ss.cssRules)o+=r.cssText+"\n"}catch(e){}}return o};
+const pdfName=s=>String(s||"").replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"");
+async function sheetJpeg(sec,css){
+  const x=new XMLSerializer().serializeToString(sec),st=css.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET_W}" height="${SHEET_H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="--ink:#000;--muted:#6b6b6b;--line:#e6e6e6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><style>${st}</style>${x}</div></foreignObject></svg>`;
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("This browser could not draw the receipt"));i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
+  const cv=document.createElement("canvas");cv.width=SHEET_W*PDF_SCALE;cv.height=SHEET_H*PDF_SCALE;
+  const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
+  const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.92));
+  if(!blob)throw new Error("This browser could not save the receipt picture");
+  return{data:new Uint8Array(await blob.arrayBuffer()),w:cv.width,h:cv.height,pw:612,ph:792}}
+async function zipPdfs(list){
+  const say=t=>{const m=document.getElementById("bl-dmsg");if(m)m.textContent=t};
+  say("Finding route maps\u2026");
+  while(busy)await sleep(200);
+  await ensureRoutes(list);while(busy)await sleep(200);
+  const f=fixed(),css=cssAll()+"\n.sheet{margin:0!important;box-shadow:none!important}";
+  const host=document.createElement("div");host.style.cssText=`position:fixed;left:-99999px;top:0;width:${SHEET_W}px`;document.body.appendChild(host);
+  const files=[],used=new Set();
+  try{
+    for(let i=0;i<list.length;i++){
+      say(`Making PDF ${i+1} of ${list.length}\u2026`);
+      host.innerHTML=receipt(list[i],f);
+      const pages=[];for(const sec of host.querySelectorAll("section.sheet"))pages.push(await sheetJpeg(sec,css));
+      let base=String(i+1).padStart(2,"0")+"_"+(pdfName(list[i].rider)||"receipt")+(list[i].date?"_"+list[i].date:"");
+      while(used.has(base))base+="_";used.add(base);
+      files.push({name:base+".pdf",data:new Uint8Array(await pdfFromJpegs(pages).arrayBuffer())});
+      await sleep(0)}
+  }finally{host.remove()}
+  const a=document.createElement("a"),u=URL.createObjectURL(makeZip(files));
+  a.href=u;a.download="uber-receipts-pdf.zip";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
 (()=>{
  const printOne=()=>{document.body.classList.add("one");const done=()=>{document.body.classList.remove("one");removeEventListener("afterprint",done)};addEventListener("afterprint",done);window.print()};
  window.BillLabs.page({
@@ -583,8 +649,10 @@ $("print").onclick=()=>{document.body.classList.remove("one");window.print()};  
   downloads:()=>{
    const many=rows&&rows.length>1,pdf="Opens the print window: choose Save as PDF, paper A4, margins None, tick Background graphics";
    const d=[];
-   if(many){d.push({group:"PDF",label:`This receipt only (${CUR+1} of ${rows.length})`,desc:pdf,icon:"file",closeFirst:true,run:printOne},
-                {group:"PDF",label:`All ${rows.length} receipts`,desc:pdf,icon:"file",closeFirst:true,run:()=>$("print").click()})}
+   if(many){const g=`All ${rows.length} receipts`;
+    d.push({group:g,label:"PDFs (ZIP)",desc:"One PDF per receipt, all in one ZIP file",icon:"zip",run:()=>zipPdfs(rows)},
+           {group:g,label:"All in one PDF (print window)",desc:pdf,icon:"file",closeFirst:true,run:()=>$("print").click()},
+           {group:"This receipt",label:`Only this one (${CUR+1} of ${rows.length})`,desc:pdf,icon:"file",closeFirst:true,run:printOne})}
    else d.push({group:"PDF",label:"Receipt as PDF",desc:pdf,icon:"file",closeFirst:true,run:()=>$("print").click()});
    d.push({group:"Bulk create",label:"CSV template",desc:"Spreadsheet with a column for every receipt field",icon:"table",run:()=>{$("tpl").click()}});
    return d}

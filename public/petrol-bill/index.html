@@ -620,6 +620,33 @@ async function zipAll(list,fmt,prog){
   let base=fileSafe(labelOf(list[i].rows)[0]),k=(used.get(base)||0)+1;used.set(base,k);
   files.push({name:(k>1?base+"_"+k:base)+"."+fmt,data})}
  saveBlob(makeZip(files),fmt==="jpg"?"pump-bills-jpeg-images.zip":"pump-bills-images.zip")}
+/* ---- PDF + ZIP writers (no library): JPEG pages -> PDF, files -> store-only ZIP ---- */
+function pdfFromJpegs(pages){ // pages: [{data:Uint8Array, w, h (pixels), pw, ph (PDF points)}]
+ const enc=new TextEncoder(),chunks=[],offs=[],n=pages.length;let len=0;
+ const put=x=>{const u=typeof x==="string"?enc.encode(x):x;chunks.push(u);len+=u.length};
+ const obj=(id,fn)=>{offs[id]=len;put(id+" 0 obj\n");fn();put("\nendobj\n")};
+ put("%PDF-1.4\n");
+ obj(1,()=>put("<< /Type /Catalog /Pages 2 0 R >>"));
+ obj(2,()=>put("<< /Type /Pages /Kids ["+pages.map((_,i)=>(3+3*i)+" 0 R").join(" ")+"] /Count "+n+" >>"));
+ pages.forEach((j,i)=>{const p=3+3*i,c=p+1,im=p+2,cs="q "+j.pw+" 0 0 "+j.ph+" 0 0 cm /Im0 Do Q";
+  obj(p,()=>put("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+j.pw+" "+j.ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+c+" 0 R >>"));
+  obj(c,()=>put("<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream"));
+  obj(im,()=>{put("<< /Type /XObject /Subtype /Image /Width "+j.w+" /Height "+j.h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+j.data.length+" >>\nstream\n");put(j.data);put("\nendstream")})});
+ const xr=len,tot=3*n+3;let x="xref\n0 "+tot+"\n0000000000 65535 f \n";
+ for(let i=1;i<tot;i++)x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
+ put(x+"trailer\n<< /Size "+tot+" /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF\n");
+ return new Blob(chunks,{type:"application/pdf"})}
+async function zipPdfAll(list){
+ const say=t=>{const m=document.getElementById("bl-dmsg");if(m)m.textContent=t};
+ const files=[],used=new Map();
+ for(let i=0;i<list.length;i++){
+  say(`Making PDF ${i+1} of ${list.length}\u2026`);
+  const cv=await billCanvas(list[i].rows,3,stOf(list[i])),data=new Uint8Array(await(await imgBlob(cv,"jpg")).arrayBuffer());
+  const pdf=pdfFromJpegs([{data,w:cv.width,h:cv.height,pw:+(cv.width/3*.75).toFixed(2),ph:+(cv.height/3*.75).toFixed(2)}]);
+  let base=fileSafe(labelOf(list[i].rows)[0]),k=(used.get(base)||0)+1;used.set(base,k);
+  files.push({name:(k>1?base+"_"+k:base)+".pdf",data:new Uint8Array(await pdf.arrayBuffer())});
+  await new Promise(r=>setTimeout(r,0))}
+ saveBlob(makeZip(files),"pump-bills-pdf.zip")}
 async function zipImages(list,btn){
  if(!list.length||btn.disabled)return;
  const lab=btn.querySelector("span"),old=lab.textContent;btn.disabled=true;
@@ -817,7 +844,8 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&Q&&Q.runn
     {group:"This bill",label:"JPEG image",desc:"Smaller file, easy to share",icon:"image",run:()=>imageSave(S.rows,undefined,"jpg")},
     {group:"This bill",label:"PDF",desc:"Opens the print window: choose Save as PDF",icon:"file",closeFirst:true,run:()=>{renderReceipt();window.print()}}];
    if(BULK.length){const g=`All ${BULK.length} created bills`;
-    d.push({group:g,label:"PNG images (ZIP)",desc:"One picture per bill in one ZIP file",icon:"zip",run:()=>zipAll(BULK,"png")},
+    d.push({group:g,label:"PDFs (ZIP)",desc:"One PDF per bill in one ZIP file",icon:"zip",run:()=>zipPdfAll(BULK)},
+           {group:g,label:"PNG images (ZIP)",desc:"One picture per bill in one ZIP file",icon:"zip",run:()=>zipAll(BULK,"png")},
            {group:g,label:"JPEG images (ZIP)",desc:"Smaller pictures in one ZIP file",icon:"zip",run:()=>zipAll(BULK,"jpg")})}
    d.push({group:"Bulk create",label:"CSV template",desc:"Spreadsheet with a column for every key in your bill rows",icon:"table",run:()=>{$("#btpl").click()}});
    return d}
