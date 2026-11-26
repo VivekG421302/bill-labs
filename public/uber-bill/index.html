@@ -90,7 +90,7 @@ details.sec[open]{padding-bottom:10px}
 .tl .pt:not(.a)::before{content:"";position:absolute;left:25.5px;top:-30px;height:calc(50% + 30px);width:3px;background:#000;z-index:0}
 .tl .dot{position:absolute;left:18px;top:50%;margin-top:-9px;width:18px;height:18px;display:block;fill:#000;z-index:1}
 .tl .pt.a::after{content:"";position:absolute;left:25.5px;top:50%;bottom:-30px;width:3px;background:#000;z-index:0}
-.mapbox{position:relative;width:408px;height:417px;border-radius:14px;overflow:hidden;background:#e9edf2;flex:none}.mapbox .tiles{position:absolute;inset:0;filter:grayscale(1) brightness(1.06) contrast(.8)}.mapbox .tiles img{position:absolute;width:256px;height:256px}.mapbox svg{position:absolute;inset:0}.mapbox .attr{position:absolute;right:6px;bottom:4px;font-size:9px;color:#666;background:rgba(255,255,255,.7);padding:0 3px}
+.mapbox{position:relative;width:408px;height:417px;border-radius:14px;overflow:hidden;background:#ecedf4;flex:none}.mapbox .tiles{position:absolute;left:0;top:0;transform-origin:0 0}.mapbox .tiles img{position:absolute;width:256px;height:256px;max-width:none}.mapbox .tiles img.osm{filter:grayscale(1) contrast(1.4) brightness(.82)}.mapbox .tiles svg{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible}.mapbox svg.pins{position:absolute;left:0;top:0;width:100%;height:100%}
 .map{width:408px;height:417px;border-radius:14px;background:#e9edf2;object-fit:cover;display:flex;align-items:center;justify-content:center;color:#8a93a0;font-size:14px;flex:none}
 .r-driver{display:flex;justify-content:space-between;align-items:center;border:1px solid #e2e2e2;border-radius:14px;height:64px;padding:0 20px;font-size:19px;margin-top:20px}
 .r-hist{display:flex;justify-content:space-between;align-items:center;font-size:19px;height:62px;border-bottom:1px solid #e8e8e8}
@@ -118,7 +118,7 @@ details.sec[open]{padding-bottom:10px}
 @media (max-width:900px){.app{grid-template-columns:1fr}.panel{position:static;max-height:none}}
 @media (max-width:700px){.topbar .nvl span{display:none}.topbar .nvl,.topbar .ib{height:38px}.topbar .ib{width:38px}.topbar .nvl{padding:0 9px}}
 @media (max-width:460px){.topbar .ttl{font-size:14px}.topbar .tb{gap:6px}}
-@media print{
+@media print{#maptoast{display:none!important}
   .sheet,.sheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:8.5in 11in;margin:0}
   .r-logo-guide{display:none}
@@ -295,20 +295,24 @@ const W=408,H=417;
 const wx=(lon,z)=>(lon+180)/360*256*2**z;
 const wy=(lat,z)=>{const r=lat*Math.PI/180;return(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*256*2**z};
 function mapHTML(rt){
-  if(rt.img)return `<div class="mapbox"><img src="${rt.img}" alt="Route map" style="width:100%;height:100%;display:block"><span class="attr">\u00A9 OpenStreetMap contributors \u00B7 OpenFreeMap</span></div>`;
-  const pts=rt.pts;let z=17;
-  const lons=pts.map(p=>p[0]),lats=pts.map(p=>p[1]);
-  const mnx=Math.min(...lons),mxx=Math.max(...lons),mnl=Math.min(...lats),mxl=Math.max(...lats);
-  for(;z>1;z--){const w=wx(mxx,z)-wx(mnx,z),h=wy(mnl,z)-wy(mxl,z);if(w<=W*.86&&h<=H*.86)break}
-  const cx=(wx(mnx,z)+wx(mxx,z))/2,cy=(wy(mnl,z)+wy(mxl,z))/2,ox=cx-W/2,oy=cy-H/2;
-  let tiles="";const n=2**z;
-  for(let tx=Math.floor(ox/256);tx<=Math.floor((ox+W)/256);tx++)for(let ty=Math.floor(oy/256);ty<=Math.floor((oy+H)/256);ty++){
-    if(ty<0||ty>=n)continue;const X=((tx%n)+n)%n;
-    tiles+=`<img alt="" crossorigin="anonymous" src="https://tile.openstreetmap.org/${z}/${X}/${ty}.png" style="left:${tx*256-ox}px;top:${ty*256-oy}px">`}
-  const P=pts.map(p=>[wx(p[0],z)-ox,wy(p[1],z)-oy]);
-  const line=P.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
-  const a=P[0],b=P[P.length-1];
-  return `<div class="mapbox"><div class="tiles">${tiles}</div><svg viewBox="0 0 ${W} ${H}"><polyline points="${line}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${a[0]}" cy="${a[1]}" r="9.5" fill="#000"/><circle cx="${a[0]}" cy="${a[1]}" r="2.25" fill="#fff"/><rect x="${b[0]-9.5}" y="${b[1]-9.5}" width="19" height="19" fill="#000"/><rect x="${b[0]-2.25}" y="${b[1]-2.25}" width="4.5" height="4.5" fill="#fff"/></svg><span class="attr">\u00A9 OpenStreetMap contributors</span></div>`}
+  if(rt.img)return `<div class="mapbox"><img src="${rt.img}" alt="Route map" style="width:100%;height:100%;display:block"></div>`;
+  // plain map: label-free light tiles (off-white land, white streets, grey main roads), turned so the trip runs corner to corner
+  const pts=rt.pts,th=-pickBearing(pts)*Math.PI/180,co=Math.cos(th),si=Math.sin(th);
+  const aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,tx=(W+FPAD.l-FPAD.r)/2,ty=(H+FPAD.t-FPAD.b)/2;
+  const rot=(x,y)=>[x*co-y*si,x*si+y*co],ext=z=>{const R=pts.map(p=>rot(wx(p[0],z),wy(p[1],z))),xs=R.map(r=>r[0]),ys=R.map(r=>r[1]);return{x0:Math.min(...xs),x1:Math.max(...xs),y0:Math.min(...ys),y1:Math.max(...ys)}};
+  let z=16;for(;z>1;z--){const e=ext(z);if(e.x1-e.x0<=aw&&e.y1-e.y0<=ah)break}
+  const e=ext(z),rcx=(e.x0+e.x1)/2,rcy=(e.y0+e.y1)/2,Cx=rcx*co+rcy*si,Cy=-rcx*si+rcy*co; // world point shown at the centre
+  const ox=Math.floor(Cx/256)*256-512,oy=Math.floor(Cy/256)*256-512;
+  let a0=1e18,a1=-1e18,b0=1e18,b1=-1e18;
+  for(const[sx,sy]of[[0,0],[W,0],[0,H],[W,H]]){const dx=sx-tx,dy=sy-ty,X=dx*co+dy*si+Cx,Y=-dx*si+dy*co+Cy;a0=Math.min(a0,X);a1=Math.max(a1,X);b0=Math.min(b0,Y);b1=Math.max(b1,Y)}
+  const n=2**z;let tiles="";
+  for(let X=Math.floor(a0/256);X<=Math.floor(a1/256);X++)for(let Y=Math.floor(b0/256);Y<=Math.floor(b1/256);Y++){
+    if(Y<0||Y>=n)continue;const XX=((X%n)+n)%n;
+    tiles+=`<img alt="" crossorigin="anonymous" src="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${Y}/${XX}" onerror="this.onerror=null;this.className='osm';this.src='https://tile.openstreetmap.org/${z}/${XX}/${Y}.png'" style="left:${X*256-ox}px;top:${Y*256-oy}px">`}
+  const line=pts.map(p=>(wx(p[0],z)-ox).toFixed(1)+","+(wy(p[1],z)-oy).toFixed(1)).join(" ");
+  const scr=p=>{const dx=wx(p[0],z)-Cx,dy=wy(p[1],z)-Cy;return[dx*co-dy*si+tx,dx*si+dy*co+ty]};
+  const a=scr(pts[0]),b=scr(pts[pts.length-1]);
+  return `<div class="mapbox"><div class="tiles" style="transform:translate(${tx}px,${ty}px) rotate(${th}rad) translate(${-(Cx-ox)}px,${-(Cy-oy)}px)">${tiles}<svg><polyline points="${line}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg></div><svg class="pins" viewBox="0 0 ${W} ${H}"><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="9.5" fill="#000"/><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="2.25" fill="#fff"/><rect x="${(b[0]-9.5).toFixed(1)}" y="${(b[1]-9.5).toFixed(1)}" width="19" height="19" fill="#000"/><rect x="${(b[0]-2.25).toFixed(1)}" y="${(b[1]-2.25).toFixed(1)}" width="4.5" height="4.5" fill="#fff"/></svg></div>`}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const OA="23456789CFGHJMPQRVWX",PLUS=/^\s*([23456789CFGHJMPQRVWX]{4,8})\+([23456789CFGHJMPQRVWX]{2,3})(?:[\s,]+([\s\S]*))?$/i;
 function olcDecode(code){
@@ -460,6 +464,18 @@ async function snap(pts){
     return map.getCanvas().toDataURL("image/jpeg",.92);
   }finally{try{map&&map.remove()}catch(e){}el.remove()}}
 
+let MLDEAD=false;
+async function mapDiag(){
+  const lim=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r("timeout"),ms))]);
+  let gl=false;try{const c=document.createElement("canvas");gl=!!(c.getContext("webgl2")||c.getContext("webgl"))}catch(e){}
+  let srv;try{const r=await lim(fetch("https://tiles.openfreemap.org/planet",{cache:"no-store"}),6000);srv=r==="timeout"?"timed out":r.ok?"reachable":"HTTP "+r.status}catch(e){srv="blocked"}
+  return`map library ${window.maplibregl?"loaded":"NOT loaded"}, WebGL ${gl?"on":"OFF"}, tile server ${srv}`}
+async function mapWarn(e){
+  const why=String(e&&e.message||e).slice(0,80);let d="";try{d=await mapDiag()}catch(x){}
+  const msg="Styled map failed ("+why+"). "+d+". Showing the plain map.";
+  $("mapstat").textContent=msg;
+  let t=document.getElementById("maptoast");if(!t){t=document.createElement("div");t.id="maptoast";t.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:min(560px,92vw);background:#222;color:#fff;font:12px/1.4 Arial,sans-serif;padding:9px 12px;border-radius:8px;z-index:99999;cursor:pointer";t.title="Tap to close";t.onclick=()=>t.remove();document.body.appendChild(t)}
+  t.textContent=msg;clearTimeout(t._h);t._h=setTimeout(()=>t.remove(),20000)}
 async function fetchRoute(pa,da){
   const key=pa+"|"+da;if(ROUTES[key])return;
   try{
@@ -471,7 +487,7 @@ async function fetchRoute(pa,da){
     const rt={pts};
     ROUTES[key]=rt;render(true); // show the plain map straight away, the styled one replaces it when ready
     $("mapstat").textContent="Drawing map\u2026";
-    try{rt.img=await Promise.race([snap(pts),new Promise((_,j)=>setTimeout(()=>j(new Error("Map timed out")),25000))])}catch(e){console.warn("Themed map failed:",e);$("mapstat").textContent="Themed map failed ("+String(e&&e.message||e).slice(0,80)+"), using plain map"}
+    if(!MLDEAD)try{rt.img=await Promise.race([snap(pts),new Promise((_,j)=>setTimeout(()=>j(new Error("Map timed out")),45000))])}catch(e){MLDEAD=true;console.warn("Themed map failed:",e);mapWarn(e)} // after one failure the rest of the session uses the plain map (no waiting per row)
     ROUTES[key]=rt;
   }catch(e){ROUTES[key]={fail:true};$("mapstat").textContent=String(e.message||e)}
 }
@@ -576,7 +592,7 @@ $("resetall").onclick=()=>{
   $("mapstat").textContent="Uses OpenStreetMap (needs internet). Or upload your own map image below.";
   syncLogoUI();render()};
 $("map").onchange=async e=>{if(e.target.files[0]){mapData=await read(e.target.files[0]);render()}};
-$("genmap").onclick=()=>{const d=formData();delete ROUTES[mq(d).join("|")];ensureRoutes([d])};
+$("genmap").onclick=()=>{MLDEAD=false;const d=formData();delete ROUTES[mq(d).join("|")];ensureRoutes([d])};
 $("single").onclick=()=>{rows=null;render()};
 $("rprev").onclick=()=>goRcpt(CUR-1);$("rnext").onclick=()=>goRcpt(CUR+1);$("rjump").onchange=e=>goRcpt(+e.target.value);
 addEventListener("keydown",e=>{if(!rows||rows.length<2||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.altKey||e.ctrlKey||e.metaKey)return;
@@ -622,7 +638,7 @@ const cssAll=()=>{let o="";for(const ss of document.styleSheets){try{for(const r
 const pdfName=s=>String(s||"").replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"");
 async function inlineImgs(root){
   for(const im of root.querySelectorAll("img[src^=http]")){
-    try{const b=await(await fetch(im.src,{mode:"cors"})).blob();im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e){}}}
+    try{const b=await(await fetch(im.src,{mode:"cors"})).blob();im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e){const m=/tile\/(\d+)\/(\d+)\/(\d+)$/.exec(im.src);if(m)try{const b=await(await fetch(`https://tile.openstreetmap.org/${m[1]}/${m[3]}/${m[2]}.png`,{mode:"cors"})).blob();im.className="osm";im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e2){}}}}
 async function sheetJpeg(sec,css){
   const x=new XMLSerializer().serializeToString(sec),st=css.replace(/&/g,"&amp;").replace(/</g,"&lt;");
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET_W}" height="${SHEET_H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="--ink:#000;--muted:#6b6b6b;--line:#e6e6e6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><style>${st}</style>${x}</div></foreignObject></svg>`;
