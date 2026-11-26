@@ -118,7 +118,7 @@ details.sec[open]{padding-bottom:10px}
 @media (max-width:900px){.app{grid-template-columns:1fr}.panel{position:static;max-height:none}}
 @media (max-width:700px){.topbar .nvl span{display:none}.topbar .nvl,.topbar .ib{height:38px}.topbar .ib{width:38px}.topbar .nvl{padding:0 9px}}
 @media (max-width:460px){.topbar .ttl{font-size:14px}.topbar .tb{gap:6px}}
-@media print{#maptoast{display:none!important}
+@media print{#maptoast,.mlsnap{display:none!important}
   .sheet,.sheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:8.5in 11in;margin:0}
   .r-logo-guide{display:none}
@@ -441,7 +441,7 @@ function fitRotated(map,pts){
 }
 async function snap(pts){
   await loadML();
-  const el=document.createElement("div");el.style.cssText=`position:fixed;left:-9999px;top:0;width:${W}px;height:${H}px`;document.body.appendChild(el);
+  const el=document.createElement("div");el.className="mlsnap";el.style.cssText=`position:fixed;left:-9999px;top:0;width:${W}px;height:${H}px`;document.body.appendChild(el);
   let map;
   try{
     const lo=pts.map(p=>p[0]),la=pts.map(p=>p[1]);
@@ -654,7 +654,7 @@ async function zipPdfs(list){
   while(busy)await sleep(200);
   await ensureRoutes(list);while(busy)await sleep(200);
   const f=fixed(),css=cssAll()+"\n.sheet{margin:0!important;box-shadow:none!important}";
-  const host=document.createElement("div");host.style.cssText=`position:fixed;left:-99999px;top:0;width:${SHEET_W}px`;document.body.appendChild(host);
+  const host=document.createElement("div");host.className="mlsnap";host.style.cssText=`position:fixed;left:-99999px;top:0;width:${SHEET_W}px`;document.body.appendChild(host);
   const files=[],used=new Set();
   try{
     for(let i=0;i<list.length;i++){
