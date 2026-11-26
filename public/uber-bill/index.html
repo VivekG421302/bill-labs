@@ -301,18 +301,18 @@ function mapHTML(rt){
   const aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,tx=(W+FPAD.l-FPAD.r)/2,ty=(H+FPAD.t-FPAD.b)/2;
   const rot=(x,y)=>[x*co-y*si,x*si+y*co],ext=z=>{const R=pts.map(p=>rot(wx(p[0],z),wy(p[1],z))),xs=R.map(r=>r[0]),ys=R.map(r=>r[1]);return{x0:Math.min(...xs),x1:Math.max(...xs),y0:Math.min(...ys),y1:Math.max(...ys)}};
   let z=16;for(;z>1;z--){const e=ext(z);if(e.x1-e.x0<=aw&&e.y1-e.y0<=ah)break}
-  const e=ext(z),rcx=(e.x0+e.x1)/2,rcy=(e.y0+e.y1)/2,Cx=rcx*co+rcy*si,Cy=-rcx*si+rcy*co; // world point shown at the centre
+  const e=ext(z),k=Math.min(Math.max(Math.min(aw/Math.max(e.x1-e.x0,1),ah/Math.max(e.y1-e.y0,1)),1),2),rcx=(e.x0+e.x1)/2,rcy=(e.y0+e.y1)/2,Cx=rcx*co+rcy*si,Cy=-rcx*si+rcy*co; // world point shown at the centre
   const ox=Math.floor(Cx/256)*256-512,oy=Math.floor(Cy/256)*256-512;
   let a0=1e18,a1=-1e18,b0=1e18,b1=-1e18;
-  for(const[sx,sy]of[[0,0],[W,0],[0,H],[W,H]]){const dx=sx-tx,dy=sy-ty,X=dx*co+dy*si+Cx,Y=-dx*si+dy*co+Cy;a0=Math.min(a0,X);a1=Math.max(a1,X);b0=Math.min(b0,Y);b1=Math.max(b1,Y)}
+  for(const[sx,sy]of[[0,0],[W,0],[0,H],[W,H]]){const dx=(sx-tx)/k,dy=(sy-ty)/k,X=dx*co+dy*si+Cx,Y=-dx*si+dy*co+Cy;a0=Math.min(a0,X);a1=Math.max(a1,X);b0=Math.min(b0,Y);b1=Math.max(b1,Y)}
   const n=2**z;let tiles="";
   for(let X=Math.floor(a0/256);X<=Math.floor(a1/256);X++)for(let Y=Math.floor(b0/256);Y<=Math.floor(b1/256);Y++){
     if(Y<0||Y>=n)continue;const XX=((X%n)+n)%n;
     tiles+=`<img alt="" crossorigin="anonymous" src="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/${z}/${Y}/${XX}" onerror="this.onerror=null;this.className='osm';this.src='https://tile.openstreetmap.org/${z}/${XX}/${Y}.png'" style="left:${X*256-ox}px;top:${Y*256-oy}px">`}
   const line=pts.map(p=>(wx(p[0],z)-ox).toFixed(1)+","+(wy(p[1],z)-oy).toFixed(1)).join(" ");
-  const scr=p=>{const dx=wx(p[0],z)-Cx,dy=wy(p[1],z)-Cy;return[dx*co-dy*si+tx,dx*si+dy*co+ty]};
+  const scr=p=>{const dx=wx(p[0],z)-Cx,dy=wy(p[1],z)-Cy;return[(dx*co-dy*si)*k+tx,(dx*si+dy*co)*k+ty]};
   const a=scr(pts[0]),b=scr(pts[pts.length-1]);
-  return `<div class="mapbox"><div class="tiles" style="transform:translate(${tx}px,${ty}px) rotate(${th}rad) translate(${-(Cx-ox)}px,${-(Cy-oy)}px)">${tiles}<svg><polyline points="${line}" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg></div><svg class="pins" viewBox="0 0 ${W} ${H}"><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="9.5" fill="#000"/><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="2.25" fill="#fff"/><rect x="${(b[0]-9.5).toFixed(1)}" y="${(b[1]-9.5).toFixed(1)}" width="19" height="19" fill="#000"/><rect x="${(b[0]-2.25).toFixed(1)}" y="${(b[1]-2.25).toFixed(1)}" width="4.5" height="4.5" fill="#fff"/></svg></div>`}
+  return `<div class="mapbox"><div class="tiles" style="transform:translate(${tx}px,${ty}px) scale(${k.toFixed(4)}) rotate(${th}rad) translate(${-(Cx-ox)}px,${-(Cy-oy)}px)">${tiles}<svg><polyline points="${line}" fill="none" stroke="#000" stroke-width="${(4/k).toFixed(2)}" stroke-linejoin="round" stroke-linecap="round"/></svg></div><svg class="pins" viewBox="0 0 ${W} ${H}"><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="9.5" fill="#000"/><circle cx="${a[0].toFixed(1)}" cy="${a[1].toFixed(1)}" r="2.25" fill="#fff"/><rect x="${(b[0]-9.5).toFixed(1)}" y="${(b[1]-9.5).toFixed(1)}" width="19" height="19" fill="#000"/><rect x="${(b[0]-2.25).toFixed(1)}" y="${(b[1]-2.25).toFixed(1)}" width="4.5" height="4.5" fill="#fff"/></svg></div>`}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const OA="23456789CFGHJMPQRVWX",PLUS=/^\s*([23456789CFGHJMPQRVWX]{4,8})\+([23456789CFGHJMPQRVWX]{2,3})(?:[\s,]+([\s\S]*))?$/i;
 function olcDecode(code){
@@ -418,7 +418,7 @@ function routeLabels(map,pts,rc){
   map.setFilter("sh",["all",map.getFilter("sh"),only([...refs],["get","ref"])]);
 }
 /* ---- rotate the map so the trip runs corner-to-corner (uses the box diagonal, so the route can be zoomed in more) ---- */
-const FPAD={t:66,b:70,l:62,r:62}; // space kept free around the route so the pins stay well away from the edges
+const FPAD={t:38,b:42,l:30,r:30};
 function pickBearing(pts){
   const P=pts.map(p=>[wx(p[0],0),wy(p[1],0)]),aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,c=[];
   const s=P[0],e=P[P.length-1];
@@ -435,7 +435,7 @@ function fitRotated(map,pts){
   const aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,tx=(W+FPAD.l-FPAD.r)/2,ty=(H+FPAD.t-FPAD.b)/2;
   const box=()=>{const P=pts.map(p=>map.project(p)),xs=P.map(p=>p.x),ys=P.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);return{w:x1-x0,h:y1-y0,cx:(x0+x1)/2,cy:(y0+y1)/2}};
   let b=box();
-  map.jumpTo({zoom:Math.min(14,Math.max(1,map.getZoom()+Math.log2(Math.min(aw/Math.max(b.w,1),ah/Math.max(b.h,1)))))});
+  map.jumpTo({zoom:Math.min(15,Math.max(1,map.getZoom()+Math.log2(Math.min(aw/Math.max(b.w,1),ah/Math.max(b.h,1)))))});
   b=box();
   map.jumpTo({center:map.unproject([W/2+b.cx-tx,H/2+b.cy-ty])});
 }
