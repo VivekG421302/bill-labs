@@ -418,7 +418,7 @@ function routeLabels(map,pts,rc){
   map.setFilter("sh",["all",map.getFilter("sh"),only([...refs],["get","ref"])]);
 }
 /* ---- rotate the map so the trip runs corner-to-corner (uses the box diagonal, so the route can be zoomed in more) ---- */
-const FPAD={t:38,b:42,l:30,r:30};
+const FPAD={t:66,b:70,l:62,r:62}; // space kept free around the route so the pins stay well away from the edges
 function pickBearing(pts){
   const P=pts.map(p=>[wx(p[0],0),wy(p[1],0)]),aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,c=[];
   const s=P[0],e=P[P.length-1];
@@ -435,7 +435,7 @@ function fitRotated(map,pts){
   const aw=W-FPAD.l-FPAD.r,ah=H-FPAD.t-FPAD.b,tx=(W+FPAD.l-FPAD.r)/2,ty=(H+FPAD.t-FPAD.b)/2;
   const box=()=>{const P=pts.map(p=>map.project(p)),xs=P.map(p=>p.x),ys=P.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);return{w:x1-x0,h:y1-y0,cx:(x0+x1)/2,cy:(y0+y1)/2}};
   let b=box();
-  map.jumpTo({zoom:Math.min(15,Math.max(1,map.getZoom()+Math.log2(Math.min(aw/Math.max(b.w,1),ah/Math.max(b.h,1)))))});
+  map.jumpTo({zoom:Math.min(14,Math.max(1,map.getZoom()+Math.log2(Math.min(aw/Math.max(b.w,1),ah/Math.max(b.h,1)))))});
   b=box();
   map.jumpTo({center:map.unproject([W/2+b.cx-tx,H/2+b.cy-ty])});
 }
