@@ -612,11 +612,14 @@ function pdfFromJpegs(pages){ // pages: [{data:Uint8Array, w, h (pixels), pw, ph
  put("%PDF-1.4\n");
  obj(1,()=>put("<< /Type /Catalog /Pages 2 0 R >>"));
  obj(2,()=>put("<< /Type /Pages /Kids ["+pages.map((_,i)=>(3+3*i)+" 0 R").join(" ")+"] /Count "+n+" >>"));
+ let nx=3+3*n;const aid=pages.map(j=>(j.links||[]).map(()=>nx++));
  pages.forEach((j,i)=>{const p=3+3*i,c=p+1,im=p+2,cs="q "+(j.dw||j.pw)+" 0 0 "+(j.dh||j.ph)+" "+(j.dx||0)+" "+(j.dy||0)+" cm /Im0 Do Q";
-  obj(p,()=>put("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+j.pw+" "+j.ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+c+" 0 R >>"));
+  obj(p,()=>put("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+j.pw+" "+j.ph+"] /Resources << /XObject << /Im0 "+im+" 0 R >> >> /Contents "+c+" 0 R"+(aid[i].length?" /Annots ["+aid[i].map(x=>x+" 0 R").join(" ")+"]":"")+" >>"));
   obj(c,()=>put("<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream"));
   obj(im,()=>{put("<< /Type /XObject /Subtype /Image /Width "+j.w+" /Height "+j.h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+j.data.length+" >>\nstream\n");put(j.data);put("\nendstream")})});
- const xr=len,tot=3*n+3;let x="xref\n0 "+tot+"\n0000000000 65535 f \n";
+ const ue=u=>u.replace(/[^\x20-\x7e]/g,c=>encodeURIComponent(c)).replace(/[\\()]/g,"\\$&");
+ pages.forEach((j,i)=>(j.links||[]).forEach((l,k)=>obj(aid[i][k],()=>put("<< /Type /Annot /Subtype /Link /Rect ["+l.r.join(" ")+"] /Border [0 0 0] /A << /S /URI /URI ("+ue(l.url)+") >> >>"))));
+ const xr=len,tot=nx;let x="xref\n0 "+tot+"\n0000000000 65535 f \n";
  for(let i=1;i<tot;i++)x+=String(offs[i]).padStart(10,"0")+" 00000 n \n";
  put(x+"trailer\n<< /Size "+tot+" /Root 1 0 R >>\nstartxref\n"+xr+"\n%%EOF\n");
  return new Blob(chunks,{type:"application/pdf"})}
@@ -645,6 +648,8 @@ async function inlineImgs(root){
   for(const im of root.querySelectorAll("img[src^=http]")){
     try{const b=await(await fetch(im.src,{mode:"cors"})).blob();im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e){const m=/tile\/(\d+)\/(\d+)\/(\d+)$/.exec(im.src);if(m)try{const b=await(await fetch(`https://tile.openstreetmap.org/${m[1]}/${m[3]}/${m[2]}.png`,{mode:"cors"})).blob();im.className="osm";im.src=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(b)})}catch(e2){}}}}
 async function sheetJpeg(sec,css){
+  const sr=sec.getBoundingClientRect(),K=595.28/SHEET_W,PHT=841.89,q=v=>+v.toFixed(2);
+  const links=[...sec.querySelectorAll("a[href]")].filter(a=>/^(https?:|mailto:|tel:)/i.test(a.href)).map(a=>{const r=a.getBoundingClientRect(),l=r.left-sr.left,t=r.top-sr.top;return{url:a.href,r:[q(l*K),q(PHT-(t+r.height)*K),q((l+r.width)*K),q(PHT-t*K)]}});
   const x=new XMLSerializer().serializeToString(sec),st=css.replace(/&/g,"&amp;").replace(/</g,"&lt;");
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET_W}" height="${SHEET_H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="--ink:#000;--muted:#6b6b6b;--line:#e6e6e6;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif"><style>${st}</style>${x}</div></foreignObject></svg>`;
   const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("This browser could not draw the receipt"));i.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)});
@@ -652,7 +657,7 @@ async function sheetJpeg(sec,css){
   const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);
   const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",.92));
   if(!blob)throw new Error("This browser could not save the receipt picture");
-  return{data:new Uint8Array(await blob.arrayBuffer()),w:cv.width,h:cv.height,pw:595.28,ph:841.89,dw:595.28,dh:+(595.28*SHEET_H/SHEET_W).toFixed(2),dx:0,dy:+(841.89-595.28*SHEET_H/SHEET_W).toFixed(2)}}
+  return{data:new Uint8Array(await blob.arrayBuffer()),w:cv.width,h:cv.height,pw:595.28,ph:841.89,dw:595.28,dh:+(595.28*SHEET_H/SHEET_W).toFixed(2),dx:0,dy:+(841.89-595.28*SHEET_H/SHEET_W).toFixed(2),links}}
 const PRINT_CSS=`@page{size:A4;margin:0}
 html,body{margin:0;padding:0;background:#fff;height:auto}
 .rcw{display:block!important}
