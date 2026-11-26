@@ -672,17 +672,16 @@ async function printSheets(onlyCur){
   const w=f.contentWindow,gone=()=>setTimeout(()=>f.remove(),500);
   w.addEventListener("afterprint",gone);setTimeout(()=>{if(f.isConnected)f.remove()},180000);
   w.focus();w.print()}
-// file name like Receipt_2026Nov14_060653 (receipt date + time as hhmmss); a clash moves the seconds on by one
+// file name like Receipt_10Aug2026_141133: receipt date (ddMonyyyy) + payment time (hhmm) + random seconds 01-59
 function receiptFileName(d,used){
-  const now=new Date(),p=dparts(d.date),ok=p.m&&p.d&&p.y;
+  const now=new Date(),p=dparts(d.date),ok=p.m&&p.d&&p.y,z=n=>String(n).padStart(2,"0");
   const y=ok?p.y:now.getFullYear(),m=ok?p.m:now.getMonth()+1,dd=ok?p.d:now.getDate();
-  const t=String(d.time||"").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]m)?/i);
-  let hh=t?+t[1]:0;const mm=t?+t[2]:0,ss=t&&t[3]?+t[3]:0;
+  const t=String(d.paytime||d.time||"").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap]m)?/i);
+  let hh=t?+t[1]:0;const mm=t?+t[2]:0;
   if(t&&t[4]){const pm=/p/i.test(t[4]);if(pm&&hh<12)hh+=12;if(!pm&&hh===12)hh=0}
-  const base=Date.UTC(y,m-1,dd,hh,mm,ss),z=n=>String(n).padStart(2,"0");
-  for(let k=0;;k++){
-    const u=new Date(base+k*1000),name=`Receipt_${u.getUTCFullYear()}${MON[u.getUTCMonth()]}${z(u.getUTCDate())}_${z(u.getUTCHours())}${z(u.getUTCMinutes())}${z(u.getUTCSeconds())}`;
-    if(!used.has(name))return name}}
+  const stem=`Receipt_${z(dd)}${MON[m-1]}${y}_${z(hh)}${z(mm)}`;
+  for(let k=0;k<200;k++){const name=stem+z(1+Math.floor(Math.random()*59));if(!used.has(name))return name}
+  return stem+z(1)+"_"+used.size}
 async function zipPdfs(list){
   const say=t=>{const m=document.getElementById("bl-dmsg");if(m)m.textContent=t};
   say("Finding route maps\u2026");
